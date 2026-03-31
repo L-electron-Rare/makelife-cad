@@ -1,4 +1,14 @@
 [project]
 name = "makelife-cad"
 version = "0.1.0"
+description = "CAD/EDA gateway for the FineFab ecosystem"
 requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.34,<1",
+    "pydantic>=2.12,<3",
+]
+
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
