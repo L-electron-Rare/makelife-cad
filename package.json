@@ -1,5 +1,10 @@
 {
   "name": "makelife-cad",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "web:start": "npm --prefix web run start"
+  }
 }
