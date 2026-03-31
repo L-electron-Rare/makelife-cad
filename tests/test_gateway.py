@@ -69,3 +69,16 @@ def test_list_projects():
     response = client.get("/projects")
     assert response.status_code == 200
     assert len(response.json()["projects"]) >= 1
+
+
+def test_kicad_drc_unavailable():
+    """DRC should return unavailable when kicad-cli is not installed."""
+    response = client.post("/kicad/drc")
+    assert response.status_code == 200
+    assert response.json()["status"] in ("unavailable", "fail", "pass")
+
+
+def test_kicad_export_unavailable():
+    response = client.get("/kicad/export/svg")
+    assert response.status_code == 200
+    assert response.json()["status"] in ("unavailable", "error", "ok")

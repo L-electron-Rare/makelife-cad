@@ -186,6 +186,45 @@ async def list_projects():
     }
 
 
+@app.post("/kicad/drc")
+async def run_drc(project_path: str = "hardware/makelife-main/makelife-main.kicad_pcb"):
+    """Run KiCad DRC on a project (requires kicad-cli on the host)."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["kicad-cli", "pcb", "drc", "--output", "/tmp/drc-report.json", project_path],
+            capture_output=True, text=True, timeout=30,
+        )
+        return {
+            "status": "pass" if result.returncode == 0 else "fail",
+            "returncode": result.returncode,
+            "stdout": result.stdout[:500],
+            "stderr": result.stderr[:500],
+        }
+    except FileNotFoundError:
+        return {"status": "unavailable", "message": "kicad-cli not installed"}
+    except subprocess.TimeoutExpired:
+        return {"status": "timeout", "message": "DRC took too long"}
+
+
+@app.get("/kicad/export/svg")
+async def export_svg(project_path: str = "hardware/makelife-main/makelife-main.kicad_sch"):
+    """Export schematic to SVG (requires kicad-cli)."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["kicad-cli", "sch", "export", "svg", "--output", "/tmp/", project_path],
+            capture_output=True, text=True, timeout=30,
+        )
+        return {
+            "status": "ok" if result.returncode == 0 else "error",
+            "returncode": result.returncode,
+            "output": result.stdout[:500],
+        }
+    except FileNotFoundError:
+        return {"status": "unavailable", "message": "kicad-cli not installed"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("gateway.app:app", host="0.0.0.0", port=8001, reload=True)
