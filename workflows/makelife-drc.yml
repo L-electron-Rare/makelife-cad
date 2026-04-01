@@ -1,0 +1,12 @@
+name: MakeLife DRC/ERC
+on:
+  pull_request:
+    paths: ['hardware/**']
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: { image: 'kicad/kicad:8.0' }
+    steps:
+      - uses: actions/checkout@v4
+      - run: find hardware -name "*.kicad_sch" -exec kicad-cli sch erc {} \;
+      - run: find hardware -name "*.kicad_pcb" -exec kicad-cli pcb drc {} \;
