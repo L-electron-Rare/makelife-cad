@@ -7,6 +7,7 @@ import { launchFreecad } from './bridges/freecad'
 import { processManager } from './utils/process-manager'
 import { startWatching, stopWatching } from './bridges/file-watcher'
 import * as gitBridge from './bridges/git'
+import * as githubBridge from './bridges/github'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -53,6 +54,14 @@ ipcMain.handle('git:add', (_, dir, filepath) => gitBridge.gitAdd(dir, filepath))
 ipcMain.handle('git:commit', (_, dir, message, author) => gitBridge.gitCommit(dir, message, author))
 ipcMain.handle('git:branches', (_, dir) => gitBridge.gitBranches(dir))
 ipcMain.handle('git:currentBranch', (_, dir) => gitBridge.gitCurrentBranch(dir))
+
+// GitHub bridge
+ipcMain.handle('github:init', (_, token) => githubBridge.initGitHub(token))
+ipcMain.handle('github:issues', (_, owner, repo, state) => githubBridge.listIssues(owner, repo, state))
+ipcMain.handle('github:createIssue', (_, owner, repo, title, body) => githubBridge.createIssue(owner, repo, title, body))
+ipcMain.handle('github:updateIssue', (_, owner, repo, num, update) => githubBridge.updateIssue(owner, repo, num, update))
+ipcMain.handle('github:prs', (_, owner, repo, state) => githubBridge.listPRs(owner, repo, state))
+ipcMain.handle('github:workflowRuns', (_, owner, repo) => githubBridge.listWorkflowRuns(owner, repo))
 
 ipcMain.handle('project:create', async (_, name: string, projectPath: string) => {
   for (const dir of ['hardware', 'mechanical', 'firmware', 'docs', '.makelife']) {
