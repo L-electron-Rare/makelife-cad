@@ -2,7 +2,7 @@
 
 Web-based CAD/EDA platform with FastAPI gateway and Next.js 15 frontend for AI-assisted electronic design.
 
-Part of the [FineFab](https://github.com/L-electron-Rare) platform (Factory 4 Life).
+Part of the [FineFab](https://github.com/L-electron-Rare) platform (FineFab).
 
 ## What it does
 
