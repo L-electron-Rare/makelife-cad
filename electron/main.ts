@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { readdir, readFile, writeFile, mkdir } from 'fs/promises'
 import { detectTools } from './utils/detect-tools'
-import { launchKicad } from './bridges/kicad'
+import * as kicadBridge from './bridges/kicad'
+import * as mascaradeBridge from './bridges/mascarade'
 import { launchFreecad } from './bridges/freecad'
 import { processManager } from './utils/process-manager'
 import { startWatching, stopWatching } from './bridges/file-watcher'
@@ -38,7 +39,7 @@ ipcMain.handle('project:getConfig', async (_, projectPath: string) => {
 })
 
 // Tool launchers
-ipcMain.handle('tools:launchKicad', async (_, filePath: string) => launchKicad(filePath))
+ipcMain.handle('tools:launchKicad', async (_, filePath: string) => kicadBridge.launchKicad(filePath))
 ipcMain.handle('tools:launchFreecad', async (_, filePath: string) => launchFreecad(filePath))
 
 // File watcher
@@ -62,6 +63,18 @@ ipcMain.handle('github:createIssue', (_, owner, repo, title, body) => githubBrid
 ipcMain.handle('github:updateIssue', (_, owner, repo, num, update) => githubBridge.updateIssue(owner, repo, num, update))
 ipcMain.handle('github:prs', (_, owner, repo, state) => githubBridge.listPRs(owner, repo, state))
 ipcMain.handle('github:workflowRuns', (_, owner, repo) => githubBridge.listWorkflowRuns(owner, repo))
+
+// KiCad CLI bridge
+ipcMain.handle('kicad:erc', (_, schPath, outputDir) => kicadBridge.runErc(schPath, outputDir))
+ipcMain.handle('kicad:drc', (_, pcbPath, outputDir) => kicadBridge.runDrc(pcbPath, outputDir))
+ipcMain.handle('kicad:exportSvg', (_, schPath, outputDir) => kicadBridge.exportSchematicSvg(schPath, outputDir))
+ipcMain.handle('kicad:exportGerbers', (_, pcbPath, outputDir) => kicadBridge.exportGerbers(pcbPath, outputDir))
+ipcMain.handle('kicad:exportBom', (_, schPath, outputPath) => kicadBridge.exportBom(schPath, outputPath))
+
+// Mascarade AI bridge
+ipcMain.handle('mascarade:health', () => mascaradeBridge.healthCheck())
+ipcMain.handle('mascarade:chat', (_, messages) => mascaradeBridge.chatSync(messages))
+ipcMain.handle('mascarade:configure', (_, cfg) => mascaradeBridge.configureMascarade(cfg))
 
 ipcMain.handle('project:create', async (_, name: string, projectPath: string) => {
   for (const dir of ['hardware', 'mechanical', 'firmware', 'docs', '.makelife']) {
