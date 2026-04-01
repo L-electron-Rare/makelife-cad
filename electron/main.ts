@@ -9,6 +9,7 @@ import { processManager } from './utils/process-manager'
 import { startWatching, stopWatching } from './bridges/file-watcher'
 import * as gitBridge from './bridges/git'
 import * as githubBridge from './bridges/github'
+import * as pioBridge from './bridges/platformio'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -63,6 +64,11 @@ ipcMain.handle('github:createIssue', (_, owner, repo, title, body) => githubBrid
 ipcMain.handle('github:updateIssue', (_, owner, repo, num, update) => githubBridge.updateIssue(owner, repo, num, update))
 ipcMain.handle('github:prs', (_, owner, repo, state) => githubBridge.listPRs(owner, repo, state))
 ipcMain.handle('github:workflowRuns', (_, owner, repo) => githubBridge.listWorkflowRuns(owner, repo))
+
+// PlatformIO bridge
+ipcMain.handle('pio:build', (_, dir, env) => pioBridge.pioBuild(dir, env))
+ipcMain.handle('pio:test', (_, dir, env) => pioBridge.pioTest(dir, env))
+ipcMain.handle('pio:upload', (_, dir, env) => pioBridge.pioUpload(dir, env))
 
 // KiCad CLI bridge
 ipcMain.handle('kicad:erc', (_, schPath, outputDir) => kicadBridge.runErc(schPath, outputDir))
