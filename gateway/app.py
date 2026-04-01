@@ -12,11 +12,38 @@ from pydantic import BaseModel
 
 logger = logging.getLogger("makelife_cad.gateway")
 
+
+def init_telemetry(app_instance):
+    """Initialize OTEL auto-instrumentation for FastAPI if endpoint is configured."""
+    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if not endpoint:
+        return
+
+    try:
+        from opentelemetry import trace
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+        resource = Resource.create({"service.name": os.getenv("OTEL_SERVICE_NAME", "makelife-cad")})
+        provider = TracerProvider(resource=resource)
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint, insecure=True)))
+        trace.set_tracer_provider(provider)
+
+        FastAPIInstrumentor.instrument_app(app_instance)
+    except ImportError:
+        pass
+
+
 app = FastAPI(
     title="MakeLife CAD Gateway",
     description="EDA gateway for YiACAD, KiCad, FreeCAD, OpenSCAD integrations",
     version="0.1.0",
 )
+
+init_telemetry(app)
 
 app.add_middleware(
     CORSMiddleware,
