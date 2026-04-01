@@ -1,11 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import './styles/globals.css'
 
 function App() {
   return (
-    <div style={{ padding: 40, fontFamily: 'system-ui' }}>
-      <h1>MakeLife Desktop</h1>
-      <p>Electron + Vite + React 19 scaffold working.</p>
+    <div className="h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-foreground">MakeLife Desktop</h1>
+        <p className="text-muted-foreground mt-2">Electron + Vite + React 19 + Tailwind</p>
+      </div>
     </div>
   )
 }
