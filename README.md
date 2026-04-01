@@ -1,35 +1,49 @@
 # makelife-cad
 
-Plateforme CAD/EDA FineFab (gateway + experiences web CAO).
+Web-based CAD/EDA platform with FastAPI gateway and Next.js 15 frontend for AI-assisted electronic design.
 
-## Role
-- Porter les capacites CAD issues de YiACAD.
-- Integrer routes FastAPI, viewers et collaboration.
-- Connecter les flux CAD avec `life-core`.
+Part of the [FineFab](https://github.com/L-electron-Rare) platform (Factory 4 Life).
 
-## Stack
-- Python 3.12+
-- TypeScript
-- FastAPI gateway
-- Next.js 15
+## What it does
 
-## Structure cible
-- `gateway/`: backend CAD/API
-- `web/`: UI CAD collaborative
-- `tools/`: integrations plugin/outillage
+- Provides a collaborative web interface for schematic and PCB design
+- Integrates KiCad and FreeCAD through a FastAPI gateway
+- Supports AI-assisted design suggestions via LLM integration
+- Renders interactive board viewers with KiCanvas
+- Connects design workflows to the FineFab runtime pipeline
 
-## Demarrage rapide
+## Tech stack
+
+Python 3.12+ | FastAPI | TypeScript | Next.js 15 | KiCanvas
+
+## Quick start
+
 ```bash
-# backend
+# Backend
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
 
-# frontend
-pnpm install
-pnpm dev
+# Frontend
+pnpm install && pnpm dev
 ```
 
-## Roadmap immediate
-- Migrer les routes CAD prioritaires.
-- Integrer plugin KiCad et KiCanvas.
-- Stabiliser tests E2E collaboration.
+## Project structure
+
+```
+gateway/   FastAPI backend and CAD API routes
+web/       Next.js collaborative CAD UI
+tools/     Plugin integrations and utilities
+```
+
+## Related repos
+
+| Repo | Role |
+|------|------|
+| [makelife-hard](https://github.com/L-electron-Rare/makelife-hard) | Hardware design files (KiCad) |
+| [makelife-firmware](https://github.com/L-electron-Rare/makelife-firmware) | Embedded firmware |
+| [KIKI-models-tuning](https://github.com/L-electron-Rare/KIKI-models-tuning) | Model fine-tuning pipeline |
+| [finefab-life](https://github.com/L-electron-Rare/finefab-life) | Integration runtime and ops |
+
+## License
+
+MIT
