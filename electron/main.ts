@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { readdir, readFile, writeFile, mkdir } from 'fs/promises'
 import { detectTools } from './utils/detect-tools'
+import { launchKicad } from './bridges/kicad'
+import { launchFreecad } from './bridges/freecad'
+import { processManager } from './utils/process-manager'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -30,6 +33,10 @@ ipcMain.handle('project:getConfig', async (_, projectPath: string) => {
     return JSON.parse(raw)
   } catch { return null }
 })
+
+// Tool launchers
+ipcMain.handle('tools:launchKicad', async (_, filePath: string) => launchKicad(filePath))
+ipcMain.handle('tools:launchFreecad', async (_, filePath: string) => launchFreecad(filePath))
 
 ipcMain.handle('project:create', async (_, name: string, projectPath: string) => {
   for (const dir of ['hardware', 'mechanical', 'firmware', 'docs', '.makelife']) {
@@ -61,6 +68,8 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 }
+
+app.on('before-quit', () => processManager.killAll())
 
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => {
