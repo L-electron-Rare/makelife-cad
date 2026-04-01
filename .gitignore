@@ -1,26 +1,5 @@
-# OS
-.DS_Store
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-venv/
-.pytest_cache/
-.coverage
-htmlcov/
-*.egg-info/
-
-# Node
 node_modules/
 dist/
-coverage/
+dist-electron/
 .vite/
-
-# Build / tooling
-build/
-.tmp/
-
-# IDE
-.vscode/
-.idea/
+*.tsbuildinfo
