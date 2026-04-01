@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "chokidar": "^5.0.0",
     "clsx": "^2.1.1",
+    "isomorphic-git": "^1.37.4",
     "lucide-react": "^0.500.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

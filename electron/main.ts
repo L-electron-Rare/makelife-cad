@@ -5,6 +5,8 @@ import { detectTools } from './utils/detect-tools'
 import { launchKicad } from './bridges/kicad'
 import { launchFreecad } from './bridges/freecad'
 import { processManager } from './utils/process-manager'
+import { startWatching, stopWatching } from './bridges/file-watcher'
+import * as gitBridge from './bridges/git'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -38,6 +40,20 @@ ipcMain.handle('project:getConfig', async (_, projectPath: string) => {
 ipcMain.handle('tools:launchKicad', async (_, filePath: string) => launchKicad(filePath))
 ipcMain.handle('tools:launchFreecad', async (_, filePath: string) => launchFreecad(filePath))
 
+// File watcher
+ipcMain.handle('watcher:start', async (_, dir: string) => {
+  if (mainWindow) startWatching(dir, mainWindow)
+})
+ipcMain.handle('watcher:stop', async () => stopWatching())
+
+// Git bridge
+ipcMain.handle('git:status', (_, dir) => gitBridge.gitStatus(dir))
+ipcMain.handle('git:log', (_, dir, depth) => gitBridge.gitLog(dir, depth))
+ipcMain.handle('git:add', (_, dir, filepath) => gitBridge.gitAdd(dir, filepath))
+ipcMain.handle('git:commit', (_, dir, message, author) => gitBridge.gitCommit(dir, message, author))
+ipcMain.handle('git:branches', (_, dir) => gitBridge.gitBranches(dir))
+ipcMain.handle('git:currentBranch', (_, dir) => gitBridge.gitCurrentBranch(dir))
+
 ipcMain.handle('project:create', async (_, name: string, projectPath: string) => {
   for (const dir of ['hardware', 'mechanical', 'firmware', 'docs', '.makelife']) {
     await mkdir(path.join(projectPath, dir), { recursive: true })
@@ -69,7 +85,10 @@ function createWindow() {
   }
 }
 
-app.on('before-quit', () => processManager.killAll())
+app.on('before-quit', () => {
+  stopWatching()
+  processManager.killAll()
+})
 
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => {
