@@ -1,15 +1,31 @@
 import { create } from 'zustand'
+import type { MakelifeConfig, ToolPaths } from '@/lib/types'
 
 interface ProjectState {
   projectPath: string | null
-  projectName: string | null
-  setProject: (path: string, name: string) => void
+  config: MakelifeConfig | null
+  toolPaths: ToolPaths | null
+  recentProjects: string[]
+  openProject: (path: string) => Promise<void>
+  detectTools: () => Promise<void>
   closeProject: () => void
 }
 
-export const useProjectStore = create<ProjectState>((set) => ({
+export const useProjectStore = create<ProjectState>((set, get) => ({
   projectPath: null,
-  projectName: null,
-  setProject: (path, name) => set({ projectPath: path, projectName: name }),
-  closeProject: () => set({ projectPath: null, projectName: null }),
+  config: null,
+  toolPaths: null,
+  recentProjects: [],
+
+  openProject: async (projectPath: string) => {
+    const config = await window.electronAPI.getProjectConfig(projectPath)
+    set({ projectPath, config })
+  },
+
+  detectTools: async () => {
+    const toolPaths = await window.electronAPI.detectTools()
+    set({ toolPaths })
+  },
+
+  closeProject: () => set({ projectPath: null, config: null }),
 }))
