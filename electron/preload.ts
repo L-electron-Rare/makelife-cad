@@ -35,3 +35,16 @@ contextBridge.exposeInMainWorld('terminal', {
     ipcRenderer.removeAllListeners(`terminal:exit:${id}`)
   },
 })
+
+contextBridge.exposeInMainWorld('ai', {
+  chat: (
+    messages: Array<{ role: string; content: string }>,
+    model?: string
+  ) => ipcRenderer.invoke('ai:chat', messages, model),
+  reviewSchematic: (filePath: string, focus?: string[]) =>
+    ipcRenderer.invoke('ai:review-schematic', filePath, focus),
+  suggestComponent: (
+    description: string,
+    constraints?: Record<string, string>
+  ) => ipcRenderer.invoke('ai:suggest-component', description, constraints),
+})

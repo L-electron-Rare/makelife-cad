@@ -11,6 +11,7 @@ import * as gitBridge from './bridges/git'
 import * as githubBridge from './bridges/github'
 import * as pioBridge from './bridges/platformio'
 import * as terminalBridge from './bridges/terminal'
+import * as aiBridge from './bridges/ai'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -90,6 +91,9 @@ ipcMain.handle('project:create', async (_, name: string, projectPath: string) =>
   const config = { name, version: '0.1.0', paths: { hardware: 'hardware', mechanical: 'mechanical', firmware: 'firmware', docs: 'docs' }, tools: {}, remotes: {} }
   await writeFile(path.join(projectPath, '.makelife', 'config.json'), JSON.stringify(config, null, 2))
 })
+
+// AI bridge
+aiBridge.registerAiHandlers()
 
 function createWindow() {
   mainWindow = new BrowserWindow({
