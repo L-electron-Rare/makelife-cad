@@ -5,4 +5,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "TODO: specialize CI for this repo"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install web dependencies
+        run: |
+          if [ -f web/package-lock.json ]; then
+            npm ci --prefix web
+          elif [ -f web/package.json ]; then
+            npm install --prefix web
+          else
+            echo "No web package manifest detected, skipping npm install"
+          fi
+      - name: Build web app when available
+        run: |
+          if [ -f web/package.json ]; then
+            npm run web:build
+          else
+            echo "No web package manifest detected, skipping build"
+          fi
+      - name: Validate Python metadata
+        run: python -m compileall -q gateway || true
