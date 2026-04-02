@@ -1,0 +1,136 @@
+import Foundation
+
+// MARK: - Data models
+
+struct SchematicComponent: Identifiable, Codable {
+    let id: UUID
+    let reference: String
+    let value: String
+    let footprint: String
+    let libId: String
+    let pins: [String]
+    let x: Double
+    let y: Double
+
+    /// Rough component type inferred from reference prefix.
+    var kind: ComponentKind {
+        switch reference.prefix(1).uppercased() {
+        case "R": return .resistor
+        case "C": return .capacitor
+        case "L": return .inductor
+        case "U": return .ic
+        case "Q": return .transistor
+        case "D": return .diode
+        case "J", "P": return .connector
+        default: return .other
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case reference, value, footprint
+        case libId = "lib_id"
+        case pins, x, y
+    }
+
+    // Auto-generate UUID from reference so decoding is deterministic.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        reference = try c.decode(String.self, forKey: .reference)
+        value     = try c.decode(String.self, forKey: .value)
+        footprint = try c.decode(String.self, forKey: .footprint)
+        libId     = try c.decode(String.self, forKey: .libId)
+        pins      = try c.decode([String].self, forKey: .pins)
+        x         = try c.decode(Double.self, forKey: .x)
+        y         = try c.decode(Double.self, forKey: .y)
+        id        = UUID()
+    }
+}
+
+enum ComponentKind: String, CaseIterable {
+    case resistor   = "Resistors"
+    case capacitor  = "Capacitors"
+    case inductor   = "Inductors"
+    case ic         = "ICs"
+    case transistor = "Transistors"
+    case diode      = "Diodes"
+    case connector  = "Connectors"
+    case other      = "Other"
+}
+
+// MARK: - Bridge errors
+
+enum KiCadBridgeError: Error, LocalizedError {
+    case fileNotFound(String)
+    case parseError(String)
+    case renderError
+
+    var errorDescription: String? {
+        switch self {
+        case .fileNotFound(let p): return "File not found: \(p)"
+        case .parseError(let p):   return "Parse error: \(p)"
+        case .renderError:         return "SVG render failed"
+        }
+    }
+}
+
+// MARK: - Main bridge class
+
+/// Thread-safe wrapper around the kicad_bridge C library.
+/// One instance per open schematic — close with `close()` when done.
+@MainActor
+final class KiCadBridge: ObservableObject {
+
+    @Published private(set) var components: [SchematicComponent] = []
+    @Published private(set) var svgContent: String = ""
+    @Published private(set) var isLoaded: Bool = false
+    @Published private(set) var errorMessage: String?
+
+    private var handle: OpaquePointer?  // KicadSch*
+
+    // MARK: - Public API
+
+    func openSchematic(path: String) throws {
+        close()
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw KiCadBridgeError.fileNotFound(path)
+        }
+        guard let h = kicad_sch_open(path) else {
+            throw KiCadBridgeError.parseError(path)
+        }
+        handle = OpaquePointer(h)
+        try loadComponents()
+        try loadSVG()
+        isLoaded = true
+        errorMessage = nil
+    }
+
+    func close() {
+        guard let h = handle else { return }
+        kicad_sch_close(UnsafeMutablePointer(h))
+        handle = nil
+        components = []
+        svgContent = ""
+        isLoaded = false
+    }
+
+    // MARK: - Private loaders
+
+    private func loadComponents() throws {
+        guard let h = handle else { return }
+        guard let jsonPtr = kicad_sch_get_components_json(UnsafeMutablePointer(h)) else {
+            throw KiCadBridgeError.parseError("components JSON")
+        }
+        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
+                        count: strlen(jsonPtr),
+                        deallocator: .none)
+        components = try JSONDecoder().decode([SchematicComponent].self, from: data)
+    }
+
+    private func loadSVG() throws {
+        guard let h = handle else { return }
+        guard let svgPtr = kicad_sch_render_svg(UnsafeMutablePointer(h)) else {
+            throw KiCadBridgeError.renderError
+        }
+        svgContent = String(cString: svgPtr)
+    }
+}
