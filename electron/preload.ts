@@ -12,5 +12,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Tools
   detectTools: () => ipcRenderer.invoke('tools:detect'),
   // Generic invoke for future use
-  invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
+  invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
+})
+
+contextBridge.exposeInMainWorld('terminal', {
+  spawn: (preset: string, cwd?: string) =>
+    ipcRenderer.invoke('terminal:spawn', preset, cwd),
+  write: (id: string, data: string) =>
+    ipcRenderer.invoke('terminal:write', id, data),
+  resize: (id: string, cols: number, rows: number) =>
+    ipcRenderer.invoke('terminal:resize', id, cols, rows),
+  kill: (id: string) =>
+    ipcRenderer.invoke('terminal:kill', id),
+  onData: (id: string, callback: (data: string) => void) => {
+    ipcRenderer.on(`terminal:data:${id}`, (_event, data) => callback(data))
+  },
+  onExit: (id: string, callback: () => void) => {
+    ipcRenderer.once(`terminal:exit:${id}`, () => callback())
+  },
+  removeDataListener: (id: string) => {
+    ipcRenderer.removeAllListeners(`terminal:data:${id}`)
+    ipcRenderer.removeAllListeners(`terminal:exit:${id}`)
+  },
 })

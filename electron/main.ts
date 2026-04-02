@@ -10,6 +10,7 @@ import { startWatching, stopWatching } from './bridges/file-watcher'
 import * as gitBridge from './bridges/git'
 import * as githubBridge from './bridges/github'
 import * as pioBridge from './bridges/platformio'
+import * as terminalBridge from './bridges/terminal'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -105,6 +106,8 @@ function createWindow() {
     },
   })
 
+  terminalBridge.registerTerminalHandlers(mainWindow)
+
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()
@@ -115,6 +118,7 @@ function createWindow() {
 
 app.on('before-quit', () => {
   stopWatching()
+  terminalBridge.killAll()
   processManager.killAll()
 })
 
