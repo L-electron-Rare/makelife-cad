@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: makelife-cad
+Version: 0.1.0
+Summary: CAD/EDA gateway for the FineFab ecosystem
+Requires-Python: >=3.12
+Requires-Dist: fastapi<1,>=0.115
+Requires-Dist: uvicorn[standard]<1,>=0.34
+Requires-Dist: pydantic<3,>=2.12
+Requires-Dist: httpx<1,>=0.28
+Requires-Dist: opentelemetry-api<2,>=1.33
+Requires-Dist: opentelemetry-sdk<2,>=1.33
+Requires-Dist: opentelemetry-exporter-otlp-proto-grpc<2,>=1.33
+Requires-Dist: opentelemetry-instrumentation-fastapi>=0.50b0
+Provides-Extra: dev
+Requires-Dist: pytest<9,>=8.3; extra == "dev"
+Requires-Dist: httpx<1,>=0.28; extra == "dev"
