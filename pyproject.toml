@@ -7,6 +7,14 @@ dependencies = [
     "fastapi>=0.115,<1",
     "uvicorn[standard]>=0.34,<1",
     "pydantic>=2.12,<3",
+<<<<<<< HEAD
+=======
+    "httpx>=0.28,<1",
+    "opentelemetry-api>=1.33,<2",
+    "opentelemetry-sdk>=1.33,<2",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.33,<2",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+>>>>>>> cab87c0 (chore: add httpx dependency for LLM client)
 ]
 
 [project.optional-dependencies]
