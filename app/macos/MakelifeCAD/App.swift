@@ -1,26 +1,32 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - App entry point
 
 @main
 struct MakelifeCADApp: App {
 
-    @StateObject private var bridge = KiCadBridge()
+    @StateObject private var schBridge  = KiCadBridge()
+    @StateObject private var pcbBridge  = KiCadPCBBridge()
     @State private var selectedComponent: SchematicComponent?
-    @State private var showFileImporter = false
+    @State private var selectedFootprint: PCBFootprint?
+    @State private var showFileImporter  = false
+    @State private var activeTab: AppTab = .schematic
 
     var body: some Scene {
         WindowGroup {
             ContentView(
-                bridge: bridge,
+                schBridge: schBridge,
+                pcbBridge: pcbBridge,
                 selectedComponent: $selectedComponent,
-                showFileImporter: $showFileImporter
+                selectedFootprint: $selectedFootprint,
+                showFileImporter: $showFileImporter,
+                activeTab: $activeTab
             )
         }
         .commands {
-            // File menu additions
             CommandGroup(replacing: .newItem) {
-                Button("Open Schematic\u{2026}") {
+                Button("Open\u{2026}") {
                     showFileImporter = true
                 }
                 .keyboardShortcut("o", modifiers: .command)
@@ -29,69 +35,163 @@ struct MakelifeCADApp: App {
     }
 }
 
+// MARK: - Tab model
+
+enum AppTab: String, CaseIterable {
+    case schematic = "Schematic"
+    case pcb       = "PCB"
+
+    var systemImage: String {
+        switch self {
+        case .schematic: return "doc.richtext"
+        case .pcb:       return "cpu"
+        }
+    }
+}
+
 // MARK: - ContentView
 
 struct ContentView: View {
-    @ObservedObject var bridge: KiCadBridge
+    @ObservedObject var schBridge: KiCadBridge
+    @ObservedObject var pcbBridge: KiCadPCBBridge
     @Binding var selectedComponent: SchematicComponent?
+    @Binding var selectedFootprint: PCBFootprint?
     @Binding var showFileImporter: Bool
+    @Binding var activeTab: AppTab
+
+    @State private var activeLayerId: Int? = nil
 
     var body: some View {
         NavigationSplitView {
-            ComponentList(bridge: bridge, selectedComponent: $selectedComponent)
+            sidebar
         } detail: {
-            SchematicView(bridge: bridge, selectedComponent: $selectedComponent)
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            showFileImporter = true
-                        } label: {
-                            Label("Open", systemImage: "folder.badge.plus")
-                        }
-                        .help("Open .kicad_sch file")
-                    }
-                    if bridge.isLoaded {
-                        ToolbarItem {
-                            Button {
-                                bridge.close()
-                                selectedComponent = nil
-                            } label: {
-                                Label("Close", systemImage: "xmark.circle")
-                            }
-                            .help("Close schematic")
-                        }
-                    }
-                }
+            detail
+                .toolbar { toolbarItems }
         }
         .navigationTitle("MakelifeCAD")
         .frame(minWidth: 900, minHeight: 600)
         .fileImporter(
             isPresented: $showFileImporter,
-            allowedContentTypes: [.init(filenameExtension: "kicad_sch")!],
+            allowedContentTypes: allowedTypes,
             allowsMultipleSelection: false
         ) { result in
             handleFileImport(result)
         }
-        .alert("Error", isPresented: .constant(bridge.errorMessage != nil), actions: {
+        .alert("Error", isPresented: .constant(currentError != nil), actions: {
             Button("OK") { }
         }, message: {
-            Text(bridge.errorMessage ?? "")
+            Text(currentError ?? "")
         })
+    }
+
+    // MARK: - Sidebar
+
+    @ViewBuilder
+    private var sidebar: some View {
+        VStack(spacing: 0) {
+            // Tab picker
+            Picker("", selection: $activeTab) {
+                ForEach(AppTab.allCases, id: \.self) { tab in
+                    Label(tab.rawValue, systemImage: tab.systemImage)
+                        .tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(8)
+
+            Divider()
+
+            switch activeTab {
+            case .schematic:
+                ComponentList(bridge: schBridge, selectedComponent: $selectedComponent)
+            case .pcb:
+                LayerPanel(bridge: pcbBridge,
+                           activeLayerId: $activeLayerId,
+                           selectedFootprint: $selectedFootprint)
+            }
+        }
+    }
+
+    // MARK: - Detail
+
+    @ViewBuilder
+    private var detail: some View {
+        switch activeTab {
+        case .schematic:
+            SchematicView(bridge: schBridge, selectedComponent: $selectedComponent)
+        case .pcb:
+            PCBView(bridge: pcbBridge, activeLayerId: $activeLayerId)
+        }
+    }
+
+    // MARK: - Toolbar
+
+    @ToolbarContentBuilder
+    private var toolbarItems: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                showFileImporter = true
+            } label: {
+                Label("Open", systemImage: "folder.badge.plus")
+            }
+            .help(activeTab == .schematic ? "Open .kicad_sch file" : "Open .kicad_pcb file")
+        }
+
+        ToolbarItem {
+            Button {
+                switch activeTab {
+                case .schematic:
+                    schBridge.close()
+                    selectedComponent = nil
+                case .pcb:
+                    pcbBridge.closePCB()
+                    selectedFootprint = nil
+                    activeLayerId = nil
+                }
+            } label: {
+                Label("Close", systemImage: "xmark.circle")
+            }
+            .help("Close current file")
+            .disabled(activeTab == .schematic ? !schBridge.isLoaded : !pcbBridge.isLoaded)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var allowedTypes: [UTType] {
+        var types: [UTType] = []
+        if let sch = UTType(filenameExtension: "kicad_sch") { types.append(sch) }
+        if let pcb = UTType(filenameExtension: "kicad_pcb") { types.append(pcb) }
+        return types.isEmpty ? [.data] : types
+    }
+
+    private var currentError: String? {
+        switch activeTab {
+        case .schematic: return schBridge.errorMessage
+        case .pcb:       return pcbBridge.errorMessage
+        }
     }
 
     private func handleFileImport(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
             guard let url = urls.first else { return }
-            // Security-scoped resource access for sandboxed apps
             let accessing = url.startAccessingSecurityScopedResource()
             defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+            let ext = url.pathExtension.lowercased()
             do {
-                try bridge.openSchematic(path: url.path)
+                if ext == "kicad_pcb" {
+                    activeTab = .pcb
+                    try pcbBridge.openPCB(path: url.path)
+                } else {
+                    activeTab = .schematic
+                    try schBridge.openSchematic(path: url.path)
+                }
             } catch {
-                // errorMessage is set inside the bridge on failure; log here too
                 print("[MakelifeCAD] open failed: \(error.localizedDescription)")
             }
+
         case .failure(let error):
             print("[MakelifeCAD] file import error: \(error.localizedDescription)")
         }
