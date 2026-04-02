@@ -4,6 +4,10 @@
 extern "C" {
 #endif
 
+/* ------------------------------------------------------------------ */
+/* Schematic API                                                        */
+/* ------------------------------------------------------------------ */
+
 /* Opaque handle to a parsed schematic */
 typedef struct KicadSch KicadSch;
 
@@ -25,6 +29,39 @@ const char* kicad_sch_render_svg(KicadSch* h);
 
 /* Free resources. Always call this after use. Returns 0 on success. */
 int kicad_sch_close(KicadSch* h);
+
+/* ------------------------------------------------------------------ */
+/* PCB API                                                             */
+/* ------------------------------------------------------------------ */
+
+/* Opaque handle to a parsed PCB */
+typedef void* kicad_pcb_handle;
+
+/* Open and parse a .kicad_pcb file.
+ * Returns NULL on failure (path not found, parse error).
+ * Caller must call kicad_pcb_close() when done. */
+kicad_pcb_handle kicad_pcb_open(const char* path);
+
+/* Return JSON array of layers:
+ * [{"id":0,"name":"F.Cu","color":"#ff5555","visible":true}, ...]
+ * Returned pointer is owned by the handle. Returns NULL on error. */
+const char* kicad_pcb_get_layers_json(kicad_pcb_handle h);
+
+/* Return JSON array of footprints:
+ * [{"reference":"R1","value":"10k","x":100.0,"y":50.0,"layer":"F.Cu"}, ...]
+ * Returned pointer is owned by the handle. Returns NULL on error. */
+const char* kicad_pcb_get_footprints_json(kicad_pcb_handle h);
+
+/* Return SVG for the given copper/silkscreen layer.
+ * layer_id: 0=F.Cu, 31=B.Cu, 35=F.SilkS, 36=B.SilkS, 44=Edge.Cuts, etc.
+ * x, y, w, h_rect: viewport hint (unused in simple renderer — pass 0,0,0,0).
+ * Returned pointer is owned by the handle. Returns NULL on error. */
+const char* kicad_pcb_render_layer_svg(kicad_pcb_handle h, int layer_id,
+                                       double x, double y,
+                                       double w, double h_rect);
+
+/* Free resources. Always call this after use. Returns 0 on success. */
+int kicad_pcb_close(kicad_pcb_handle h);
 
 #ifdef __cplusplus
 }
