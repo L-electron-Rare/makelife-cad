@@ -15,8 +15,17 @@ from pydantic import BaseModel
 from gateway.llm_client import chat as llm_chat, LLMClientError
 from gateway.kicad_parser import parse_schematic, SchematicContext
 from gateway.prompts import build_component_prompt, build_review_prompt
+from gateway.yiacad_client import (
+    YiacadClientError,
+    execute_action as yiacad_execute_action,
+    gateway_health as yiacad_gateway_health,
+    relay as yiacad_relay,
+)
 
 logger = logging.getLogger("makelife_cad.gateway")
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_YIACAD_DIR = PROJECT_ROOT / "vendor" / "yiacad"
 
 
 def init_telemetry(app_instance):
@@ -91,6 +100,38 @@ TOOLS = {
 }
 
 
+def _yiacad_dir() -> Path:
+    """Resolve YiACAD location from env or default vendor path."""
+    return Path(os.getenv("YIACAD_DIR", str(DEFAULT_YIACAD_DIR))).expanduser()
+
+
+def yiacad_status() -> dict[str, Any]:
+    """Return runtime status of YiACAD integration for diagnostics and tool listing."""
+    yiacad_dir = _yiacad_dir()
+    exists = yiacad_dir.exists()
+    is_symlink = yiacad_dir.is_symlink()
+    resolved_path = yiacad_dir.resolve() if exists else yiacad_dir
+    resolved_exists = resolved_path.exists()
+
+    status = "available" if exists and resolved_exists else "unavailable"
+    return {
+        "status": status,
+        "configured_path": str(yiacad_dir),
+        "resolved_path": str(resolved_path),
+        "exists": exists,
+        "is_symlink": is_symlink,
+        "resolved_exists": resolved_exists,
+        "hint": "make yiacad-link YIACAD_DIR=../YiACAD",
+    }
+
+
+def tools_snapshot() -> dict[str, dict[str, Any]]:
+    """Return tool registry with runtime-updated values."""
+    snapshot = {key: value.copy() for key, value in TOOLS.items()}
+    snapshot["yiacad"]["status"] = yiacad_status()["status"]
+    return snapshot
+
+
 # Models
 class DesignRequest(BaseModel):
     tool: str
@@ -123,24 +164,61 @@ class BOMEntry(BaseModel):
     part_number: str | None = None
 
 
+class YiacadRelayRequest(BaseModel):
+    method: str = "GET"
+    path: str
+    payload: dict[str, Any] = {}
+
+
 # Endpoints
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "makelife-cad-gateway", "tools": len(TOOLS)}
+    y_status = yiacad_status()
+    return {
+        "status": "ok",
+        "service": "makelife-cad-gateway",
+        "tools": len(TOOLS),
+        "yiacad_status": y_status["status"],
+    }
 
 
 @app.get("/tools")
 async def list_tools():
     """List available CAD/EDA tools and their capabilities."""
-    return {"tools": list(TOOLS.values())}
+    return {"tools": list(tools_snapshot().values())}
 
 
 @app.get("/tools/{tool_id}")
 async def get_tool(tool_id: str):
     """Get details for a specific tool."""
-    if tool_id not in TOOLS:
+    runtime_tools = tools_snapshot()
+    if tool_id not in runtime_tools:
         raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
-    return TOOLS[tool_id]
+    return runtime_tools[tool_id]
+
+
+@app.get("/yiacad/status")
+async def get_yiacad_status():
+    """Return integration status for local YiACAD repository/link."""
+    return yiacad_status()
+
+
+@app.get("/yiacad/health")
+async def get_yiacad_health():
+    """Probe the YiACAD gateway availability from makelife-cad."""
+    try:
+        return await yiacad_gateway_health()
+    except YiacadClientError as e:
+        raise HTTPException(status_code=502, detail=f"YiACAD health check failed: {e}")
+
+
+@app.post("/yiacad/relay")
+async def relay_to_yiacad(request: YiacadRelayRequest):
+    """Generic relay for any YiACAD gateway endpoint."""
+    try:
+        return await yiacad_relay(request.method, request.path, request.payload)
+    except YiacadClientError as e:
+        raise HTTPException(status_code=502, detail=f"YiACAD relay failed: {e}")
 
 
 @app.post("/design", response_model=DesignResult)
@@ -156,8 +234,33 @@ async def execute_design(request: DesignRequest):
             detail=f"Action '{request.action}' not supported by {request.tool}. Available: {tool['capabilities']}",
         )
 
-    # Dispatch to tool-specific handler (placeholder for now)
     logger.info(f"Design request: tool={request.tool} action={request.action}")
+
+    if request.tool == "yiacad":
+        try:
+            relay_result = await yiacad_execute_action(
+                action=request.action,
+                payload={
+                    **(request.context or {}),
+                    **(request.parameters or {}),
+                },
+            )
+        except YiacadClientError as e:
+            raise HTTPException(status_code=502, detail=f"YiACAD execution failed: {e}")
+
+        yiacad_response = relay_result.get("response", {})
+        status = "done" if yiacad_response.get("ok", True) else "error"
+        return DesignResult(
+            tool=request.tool,
+            action=request.action,
+            status=status,
+            result={
+                "gateway_url": relay_result.get("gateway_url"),
+                "route": relay_result.get("route"),
+                "payload": relay_result.get("payload"),
+                "response": yiacad_response,
+            },
+        )
 
     return DesignResult(
         tool=request.tool,

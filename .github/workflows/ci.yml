@@ -1,16 +1,28 @@
 name: CI
 on: [push, pull_request]
+
 jobs:
-  validate:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run pytest
+        run: python -m pytest tests/ -v
+
+  web-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - name: Install web dependencies
         run: |
           if [ -f web/package-lock.json ]; then
@@ -27,5 +39,41 @@ jobs:
           else
             echo "No web package manifest detected, skipping build"
           fi
-      - name: Validate Python metadata
-        run: python -m compileall -q gateway || true
+
+  kicad-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install KiCad CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y kicad
+      - name: Run KiCad smoke check
+        run: bash scripts/kicad_smoke_check.sh
+      - name: Upload KiCad smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kicad-smoke-artifacts
+          path: |
+            .ci_artifacts/kicad-smoke/
+
+  kicad-drc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install KiCad CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y kicad
+      - name: Run KiCad DRC check
+        run: bash scripts/kicad_drc_check.sh
+      - name: Upload KiCad DRC artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kicad-drc-artifacts
+          path: |
+            .ci_artifacts/kicad-drc/
