@@ -1,6 +1,129 @@
 import Foundation
 
-// MARK: - Data models
+// MARK: - PCB Data models
+
+struct PCBLayer: Identifiable, Codable {
+    let id: Int
+    let name: String
+    let color: String
+    var visible: Bool
+
+    /// SwiftUI Color from hex string
+    var swiftColor: (r: Double, g: Double, b: Double) {
+        let hex = color.hasPrefix("#") ? String(color.dropFirst()) : color
+        let val = UInt32(hex, radix: 16) ?? 0xFF5555
+        return (
+            r: Double((val >> 16) & 0xFF) / 255.0,
+            g: Double((val >> 8)  & 0xFF) / 255.0,
+            b: Double( val        & 0xFF) / 255.0
+        )
+    }
+}
+
+struct PCBFootprint: Identifiable, Codable {
+    let id: UUID
+    let reference: String
+    let value: String
+    let x: Double
+    let y: Double
+    let angle: Double
+    let layer: String
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        reference = try c.decode(String.self, forKey: .reference)
+        value     = try c.decode(String.self, forKey: .value)
+        x         = try c.decode(Double.self, forKey: .x)
+        y         = try c.decode(Double.self, forKey: .y)
+        angle     = try c.decode(Double.self, forKey: .angle)
+        layer     = try c.decode(String.self, forKey: .layer)
+        id        = UUID()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case reference, value, x, y, angle, layer
+    }
+}
+
+// MARK: - PCB Bridge
+
+/// Thread-safe wrapper around the kicad_bridge PCB C API.
+/// One instance per open PCB — close with `closePCB()` when done.
+@MainActor
+final class KiCadPCBBridge: ObservableObject {
+
+    @Published private(set) var layers: [PCBLayer] = []
+    @Published private(set) var footprints: [PCBFootprint] = []
+    @Published private(set) var isLoaded: Bool = false
+    @Published private(set) var errorMessage: String?
+
+    private var handle: kicad_pcb_handle?
+
+    // MARK: - Public API
+
+    func openPCB(path: String) throws {
+        closePCB()
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw KiCadBridgeError.fileNotFound(path)
+        }
+        guard let h = kicad_pcb_open(path) else {
+            throw KiCadBridgeError.parseError(path)
+        }
+        handle = h
+        try loadLayers()
+        try loadFootprints()
+        isLoaded = true
+        errorMessage = nil
+    }
+
+    func renderLayer(layerId: Int) -> String? {
+        guard let h = handle else { return nil }
+        guard let ptr = kicad_pcb_render_layer_svg(h, Int32(layerId), 0, 0, 0, 0) else {
+            return nil
+        }
+        return String(cString: ptr)
+    }
+
+    func toggleLayerVisibility(id: Int) {
+        guard let idx = layers.firstIndex(where: { $0.id == id }) else { return }
+        layers[idx].visible.toggle()
+    }
+
+    func closePCB() {
+        guard let h = handle else { return }
+        kicad_pcb_close(h)
+        handle = nil
+        layers = []
+        footprints = []
+        isLoaded = false
+    }
+
+    // MARK: - Private loaders
+
+    private func loadLayers() throws {
+        guard let h = handle else { return }
+        guard let jsonPtr = kicad_pcb_get_layers_json(h) else {
+            throw KiCadBridgeError.parseError("layers JSON")
+        }
+        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
+                        count: strlen(jsonPtr),
+                        deallocator: .none)
+        layers = try JSONDecoder().decode([PCBLayer].self, from: data)
+    }
+
+    private func loadFootprints() throws {
+        guard let h = handle else { return }
+        guard let jsonPtr = kicad_pcb_get_footprints_json(h) else {
+            throw KiCadBridgeError.parseError("footprints JSON")
+        }
+        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
+                        count: strlen(jsonPtr),
+                        deallocator: .none)
+        footprints = try JSONDecoder().decode([PCBFootprint].self, from: data)
+    }
+}
+
+// MARK: - Schematic Data models
 
 struct SchematicComponent: Identifiable, Codable {
     let id: UUID
