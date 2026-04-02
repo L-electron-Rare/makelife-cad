@@ -10,11 +10,13 @@ YIACAD_LINK := $(VENDOR_DIR)/yiacad
 KICAD_FORK_URL ?= https://github.com/electron-rare/kicad-source-mirror.git
 FREECAD_FORK_URL ?= https://github.com/electron-rare/FreeCAD.git
 YIACAD_KICAD_PLUGIN_URL ?= https://github.com/electron-rare/yiacad-kicad-plugin.git
+FREE_CODE_URL ?= https://github.com/paoloanzn/free-code.git
 
 # Optional branches for fork tracking
 KICAD_BRANCH ?= master
 FREECAD_BRANCH ?= main
 YIACAD_KICAD_PLUGIN_BRANCH ?= main
+FREE_CODE_BRANCH ?= main
 
 # Python / Node
 PYTHON ?= python3
@@ -28,7 +30,8 @@ PIP_VENV := $(PROJECT_ROOT)/$(VENV_DIR)/bin/pip
 	dev dev-gateway dev-web test build-web clean \
 	yiacad-link yiacad-check \
 	yiacad-plugin-clone yiacad-plugin-check yiacad-plugin-pull \
-	kicad-clone-fork freecad-clone-fork forks-clone forks-pull \
+	free-code-clone free-code-check free-code-pull \
+	kicad-clone-fork freecad-clone-fork forks-clone forks-pull kicad-smoke kicad-drc \
 	xcode-open xcode-project-skeleton
 
 help:
@@ -39,6 +42,9 @@ help:
 	@echo "  yiacad-check          - Verifie le lien Yiacad"
 	@echo "  yiacad-plugin-clone   - Clone le plugin yiacad-kicad dans vendor/"
 	@echo "  yiacad-plugin-check   - Verifie le plugin yiacad-kicad local"
+	@echo "  free-code-clone       - Clone paoloanzn/free-code dans vendor/free-code"
+	@echo "  free-code-check       - Verifie le clone local de free-code"
+	@echo "  free-code-pull        - Met a jour free-code local"
 	@echo "  forks-clone           - Clone KiCad et FreeCAD dans vendor/"
 	@echo "  forks-pull            - Met a jour les forks locaux"
 	@echo "  dev                   - Lance backend + frontend (2 terminaux requis)"
@@ -46,6 +52,8 @@ help:
 	@echo "  dev-web               - Lance Next.js web"
 	@echo "  test                  - Lance tests Python"
 	@echo "  build-web             - Build frontend"
+	@echo "  kicad-smoke           - Smoke test kicad-cli export SVG"
+	@echo "  kicad-drc             - DRC check kicad-cli sur fixture PCB"
 	@echo "  xcode-project-skeleton- Cree un squelette Swift macOS"
 	@echo "  xcode-open            - Ouvre le dossier app/macos dans Xcode"
 	@echo ""
@@ -54,6 +62,7 @@ help:
 	@echo "  KICAD_FORK_URL=$(KICAD_FORK_URL)"
 	@echo "  FREECAD_FORK_URL=$(FREECAD_FORK_URL)"
 	@echo "  YIACAD_KICAD_PLUGIN_URL=$(YIACAD_KICAD_PLUGIN_URL)"
+	@echo "  FREE_CODE_URL=$(FREE_CODE_URL)"
 
 doctor:
 	@echo "[doctor] make: $$(command -v make || echo absent)"
@@ -127,6 +136,32 @@ yiacad-plugin-pull:
 		exit 1; \
 	fi
 
+free-code-clone:
+	@mkdir -p "$(VENDOR_DIR)"
+	@if [ -d "$(VENDOR_DIR)/free-code/.git" ]; then \
+		echo "free-code deja clone: $(VENDOR_DIR)/free-code"; \
+	else \
+		git clone --branch "$(FREE_CODE_BRANCH)" --single-branch "$(FREE_CODE_URL)" "$(VENDOR_DIR)/free-code" || \
+		( echo "Echec clone free-code. Si le depot upstream est indisponible, override FREE_CODE_URL:" && \
+		  echo "  make FREE_CODE_URL=https://github.com/<owner>/<fork>.git free-code-clone" && false ); \
+	fi
+
+free-code-check:
+	@if [ -d "$(VENDOR_DIR)/free-code/.git" ]; then \
+		echo "free-code present: $(VENDOR_DIR)/free-code"; \
+	else \
+		echo "free-code absent. Lance: make free-code-clone"; \
+		exit 1; \
+	fi
+
+free-code-pull:
+	@if [ -d "$(VENDOR_DIR)/free-code/.git" ]; then \
+		git -C "$(VENDOR_DIR)/free-code" pull --ff-only; \
+	else \
+		echo "free-code absent. Lance: make free-code-clone"; \
+		exit 1; \
+	fi
+
 kicad-clone-fork:
 	@mkdir -p "$(VENDOR_DIR)"
 	@if [ -d "$(VENDOR_DIR)/kicad/.git" ]; then \
@@ -143,11 +178,12 @@ freecad-clone-fork:
 		git clone --branch "$(FREECAD_BRANCH)" --single-branch "$(FREECAD_FORK_URL)" "$(VENDOR_DIR)/freecad"; \
 	fi
 
-forks-clone: kicad-clone-fork freecad-clone-fork
+forks-clone: kicad-clone-fork freecad-clone-fork free-code-clone
 
 forks-pull:
 	@if [ -d "$(VENDOR_DIR)/kicad/.git" ]; then git -C "$(VENDOR_DIR)/kicad" pull --ff-only; else echo "KiCad non clone"; fi
 	@if [ -d "$(VENDOR_DIR)/freecad/.git" ]; then git -C "$(VENDOR_DIR)/freecad" pull --ff-only; else echo "FreeCAD non clone"; fi
+	@if [ -d "$(VENDOR_DIR)/free-code/.git" ]; then git -C "$(VENDOR_DIR)/free-code" pull --ff-only; else echo "free-code non clone"; fi
 
 dev:
 	@echo "Lancer dans 2 terminaux: make dev-gateway et make dev-web"
@@ -163,6 +199,12 @@ test:
 
 build-web:
 	cd "$(PROJECT_ROOT)" && $(NPM) run web:build
+
+kicad-smoke:
+	cd "$(PROJECT_ROOT)" && bash scripts/kicad_smoke_check.sh
+
+kicad-drc:
+	cd "$(PROJECT_ROOT)" && bash scripts/kicad_drc_check.sh
 
 xcode-project-skeleton:
 	@mkdir -p "$(PROJECT_ROOT)/app/macos/MakelifeCAD"
