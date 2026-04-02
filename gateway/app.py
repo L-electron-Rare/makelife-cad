@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import json as json_module
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from gateway.llm_client import chat as llm_chat, LLMClientError
+from gateway.kicad_parser import parse_schematic, SchematicContext
+from gateway.prompts import build_component_prompt, build_review_prompt
 
 logger = logging.getLogger("makelife_cad.gateway")
 
@@ -250,6 +256,155 @@ async def export_svg(project_path: str = "hardware/makelife-main/makelife-main.k
         }
     except FileNotFoundError:
         return {"status": "unavailable", "message": "kicad-cli not installed"}
+
+
+# --- AI-assisted endpoints ---
+
+CAD_PROJECTS_DIR = Path(os.getenv("CAD_PROJECTS_DIR", "/projects"))
+AI_COMPONENT_MODEL = os.getenv("AI_COMPONENT_MODEL", "openai/qwen-14b-awq")
+AI_REVIEW_MODEL = os.getenv("AI_REVIEW_MODEL", "openai/mascarade-kicad")
+AI_REVIEW_FALLBACK = os.getenv("AI_REVIEW_FALLBACK_MODEL", "openai/qwen-14b-awq")
+
+
+class ComponentSuggestRequest(BaseModel):
+    description: str
+    constraints: dict[str, str] = {}
+    project_context: str | None = None
+
+
+class ComponentSuggestion(BaseModel):
+    name: str
+    manufacturer: str = ""
+    package: str = ""
+    key_specs: dict[str, str] = {}
+    reason: str = ""
+
+
+class ComponentSuggestResponse(BaseModel):
+    suggestions: list[ComponentSuggestion]
+    model_used: str
+    context_used: bool
+
+
+@app.post("/ai/component-suggest", response_model=ComponentSuggestResponse)
+async def component_suggest(request: ComponentSuggestRequest):
+    """AI-powered electronic component suggestion."""
+    project_ctx = None
+    if request.project_context:
+        try:
+            ctx_path = CAD_PROJECTS_DIR / request.project_context
+            if not ctx_path.exists():
+                ctx_path = Path(request.project_context)
+            if ctx_path.exists():
+                project_ctx = parse_schematic(ctx_path.read_text())
+        except Exception as e:
+            logger.warning("Failed to parse project context: %s", e)
+
+    messages = build_component_prompt(
+        description=request.description,
+        constraints=request.constraints or None,
+        project_context=project_ctx,
+    )
+
+    try:
+        raw = await llm_chat(messages=messages, model=AI_COMPONENT_MODEL)
+    except LLMClientError as e:
+        raise HTTPException(status_code=502, detail=f"LLM service error: {e}")
+
+    try:
+        suggestions_raw = json_module.loads(raw)
+        suggestions = [ComponentSuggestion(**s) for s in suggestions_raw]
+    except (json_module.JSONDecodeError, TypeError, KeyError):
+        suggestions = [ComponentSuggestion(name="raw_response", reason=raw[:500])]
+
+    return ComponentSuggestResponse(
+        suggestions=suggestions,
+        model_used=AI_COMPONENT_MODEL,
+        context_used=project_ctx is not None,
+    )
+
+
+class SchematicReviewRequest(BaseModel):
+    project_path: str | None = None
+    focus: list[str] | None = None
+
+
+class ReviewIssue(BaseModel):
+    severity: str
+    category: str
+    component: str = ""
+    message: str
+    suggestion: str = ""
+
+
+class SchematicReviewResponse(BaseModel):
+    issues: list[ReviewIssue]
+    summary: str
+    model_used: str
+    components_analyzed: int
+    nets_analyzed: int
+
+
+@app.post("/ai/schematic-review", response_model=SchematicReviewResponse)
+async def schematic_review(raw_request: Request):
+    """AI-powered schematic design review."""
+    content = None
+    review_request: SchematicReviewRequest | None = None
+
+    content_type = raw_request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type:
+        form = await raw_request.form()
+        file = form.get("file")
+        if file and hasattr(file, "read"):
+            content = (await file.read()).decode("utf-8")
+    else:
+        body = await raw_request.body()
+        if body:
+            try:
+                review_request = SchematicReviewRequest(**json_module.loads(body))
+            except (json_module.JSONDecodeError, TypeError):
+                pass
+        if review_request and review_request.project_path:
+            sch_path = CAD_PROJECTS_DIR / review_request.project_path
+            if not sch_path.exists():
+                sch_path = Path(review_request.project_path)
+            if sch_path.exists():
+                content = sch_path.read_text()
+
+    if not content:
+        raise HTTPException(status_code=400, detail="Provide either 'file' upload or 'project_path'")
+
+    schematic = parse_schematic(content)
+    focus = review_request.focus if review_request else None
+    messages = build_review_prompt(schematic, focus=focus)
+
+    model = AI_REVIEW_MODEL
+    try:
+        raw = await llm_chat(messages=messages, model=model)
+    except LLMClientError:
+        model = AI_REVIEW_FALLBACK
+        try:
+            raw = await llm_chat(messages=messages, model=model)
+        except LLMClientError as e:
+            raise HTTPException(status_code=502, detail=f"LLM service error: {e}")
+
+    try:
+        issues_raw = json_module.loads(raw)
+        issues = [ReviewIssue(**i) for i in issues_raw]
+    except (json_module.JSONDecodeError, TypeError, KeyError):
+        issues = [ReviewIssue(severity="info", category="parse_error", message=f"Could not parse LLM response: {raw[:200]}")]
+
+    high = sum(1 for i in issues if i.severity == "high")
+    medium = sum(1 for i in issues if i.severity == "medium")
+    low = sum(1 for i in issues if i.severity == "low")
+
+    return SchematicReviewResponse(
+        issues=issues,
+        summary=f"{len(issues)} issues found: {high} high, {medium} medium, {low} low",
+        model_used=model,
+        components_analyzed=len(schematic.components),
+        nets_analyzed=len(schematic.nets),
+    )
 
 
 if __name__ == "__main__":
