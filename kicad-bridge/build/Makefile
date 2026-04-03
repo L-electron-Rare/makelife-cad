@@ -129,6 +129,54 @@ kicad_bridge/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/build
 .PHONY : kicad_bridge/fast
 
+src/bridge_drc.o: src/bridge_drc.c.o
+.PHONY : src/bridge_drc.o
+
+# target to build an object file
+src/bridge_drc.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o
+.PHONY : src/bridge_drc.c.o
+
+src/bridge_drc.i: src/bridge_drc.c.i
+.PHONY : src/bridge_drc.i
+
+# target to preprocess a source file
+src/bridge_drc.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.i
+.PHONY : src/bridge_drc.c.i
+
+src/bridge_drc.s: src/bridge_drc.c.s
+.PHONY : src/bridge_drc.s
+
+# target to generate assembly for a file
+src/bridge_drc.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.s
+.PHONY : src/bridge_drc.c.s
+
+src/bridge_pcb.o: src/bridge_pcb.c.o
+.PHONY : src/bridge_pcb.o
+
+# target to build an object file
+src/bridge_pcb.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o
+.PHONY : src/bridge_pcb.c.o
+
+src/bridge_pcb.i: src/bridge_pcb.c.i
+.PHONY : src/bridge_pcb.i
+
+# target to preprocess a source file
+src/bridge_pcb.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.i
+.PHONY : src/bridge_pcb.c.i
+
+src/bridge_pcb.s: src/bridge_pcb.c.s
+.PHONY : src/bridge_pcb.s
+
+# target to generate assembly for a file
+src/bridge_pcb.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.s
+.PHONY : src/bridge_pcb.c.s
+
 src/bridge_sch.o: src/bridge_sch.c.o
 .PHONY : src/bridge_sch.o
 
@@ -162,6 +210,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... kicad_bridge"
+	@echo "... src/bridge_drc.o"
+	@echo "... src/bridge_drc.i"
+	@echo "... src/bridge_drc.s"
+	@echo "... src/bridge_pcb.o"
+	@echo "... src/bridge_pcb.i"
+	@echo "... src/bridge_pcb.s"
 	@echo "... src/bridge_sch.o"
 	@echo "... src/bridge_sch.i"
 	@echo "... src/bridge_sch.s"

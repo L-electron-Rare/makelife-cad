@@ -1,5 +1,5 @@
-CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o: \
-  /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/src/bridge_sch.c \
+CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o: \
+  /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/src/bridge_pcb.c \
   /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/include/kicad_bridge.h \
   /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/src/kicad_bridge_internal.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stddef.h \

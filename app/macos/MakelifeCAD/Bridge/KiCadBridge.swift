@@ -89,6 +89,17 @@ final class KiCadPCBBridge: ObservableObject {
         layers[idx].visible.toggle()
     }
 
+    /// Run DRC checks and return the parsed violations.
+    /// The result is cached by the C bridge until the handle is closed.
+    func runDRC() -> [DRCViolation] {
+        guard let h = handle else { return [] }
+        guard let jsonPtr = kicad_run_drc_json(h) else { return [] }
+        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
+                        count: strlen(jsonPtr),
+                        deallocator: .none)
+        return (try? JSONDecoder().decode([DRCViolation].self, from: data)) ?? []
+    }
+
     func closePCB() {
         guard let h = handle else { return }
         kicad_pcb_close(h)
@@ -180,6 +191,43 @@ enum ComponentKind: String, CaseIterable {
     case other      = "Other"
 }
 
+// MARK: - DRC / ERC data models
+
+struct DRCLocation: Codable {
+    let x: Double
+    let y: Double
+}
+
+/// A single DRC or ERC violation returned by the C bridge.
+struct DRCViolation: Identifiable, Codable {
+    let id: UUID
+    let severity: String        // "error" | "warning"
+    let rule: String
+    let message: String
+    let location: DRCLocation?  // present for DRC (PCB)
+    let layer: String?          // present for DRC
+    let component: String?      // present for ERC
+    let pin: String?            // present for ERC
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        severity  = try c.decode(String.self, forKey: .severity)
+        rule      = try c.decode(String.self, forKey: .rule)
+        message   = try c.decode(String.self, forKey: .message)
+        location  = try c.decodeIfPresent(DRCLocation.self, forKey: .location)
+        layer     = try c.decodeIfPresent(String.self, forKey: .layer)
+        component = try c.decodeIfPresent(String.self, forKey: .component)
+        pin       = try c.decodeIfPresent(String.self, forKey: .pin)
+        id        = UUID()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case severity, rule, message, location, layer, component, pin
+    }
+
+    var isError: Bool { severity == "error" }
+}
+
 // MARK: - Bridge errors
 
 enum KiCadBridgeError: Error, LocalizedError {
@@ -225,6 +273,17 @@ final class KiCadBridge: ObservableObject {
         try loadSVG()
         isLoaded = true
         errorMessage = nil
+    }
+
+    /// Run ERC checks and return the parsed violations.
+    /// The result is cached by the C bridge until the handle is closed.
+    func runERC() -> [DRCViolation] {
+        guard let h = handle else { return [] }
+        guard let jsonPtr = kicad_run_erc_json(UnsafeMutablePointer(h)) else { return [] }
+        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
+                        count: strlen(jsonPtr),
+                        deallocator: .none)
+        return (try? JSONDecoder().decode([DRCViolation].self, from: data)) ?? []
     }
 
     func close() {

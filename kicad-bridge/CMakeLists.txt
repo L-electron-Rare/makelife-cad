@@ -7,6 +7,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 add_library(kicad_bridge STATIC
     src/bridge_sch.c
     src/bridge_pcb.c
+    src/bridge_drc.c
 )
 
 target_include_directories(kicad_bridge PUBLIC

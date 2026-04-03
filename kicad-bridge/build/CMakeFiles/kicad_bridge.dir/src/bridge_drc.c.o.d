@@ -1,5 +1,5 @@
-CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o: \
-  /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/src/bridge_sch.c \
+CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o: \
+  /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/src/bridge_drc.c \
   /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/include/kicad_bridge.h \
   /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/src/kicad_bridge_internal.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stddef.h \
@@ -103,8 +103,4 @@ CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_strings.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/secure/_strings.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/secure/_string.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/ctype.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_ctype.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/runetype.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_wint_t.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/math.h

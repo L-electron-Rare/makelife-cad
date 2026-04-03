@@ -5,69 +5,13 @@
  */
 
 #include "kicad_bridge.h"
+#include "kicad_bridge_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
-
-/* ------------------------------------------------------------------ */
-/* Constants                                                            */
-/* ------------------------------------------------------------------ */
-
-#define KICAD_MAX_COMPONENTS 4096
-#define KICAD_MAX_PROP_LEN   256
-#define KICAD_MAX_PINS       64
-#define KICAD_MAX_WIRES      8192
-#define KICAD_MAX_LABELS     1024
-#define KICAD_JSON_BUF_SIZE  (1 << 20)  /* 1 MB */
-#define KICAD_SVG_BUF_SIZE   (4 << 20)  /* 4 MB */
-
-/* ------------------------------------------------------------------ */
-/* Internal types                                                       */
-/* ------------------------------------------------------------------ */
-
-typedef struct {
-    char reference[KICAD_MAX_PROP_LEN];
-    char value[KICAD_MAX_PROP_LEN];
-    char footprint[KICAD_MAX_PROP_LEN];
-    char lib_id[KICAD_MAX_PROP_LEN];
-    char pins[KICAD_MAX_PINS][16];
-    int  pin_count;
-    double x, y;
-} KicadComponent;
-
-typedef struct {
-    double x1, y1, x2, y2;
-} KicadWire;
-
-typedef struct {
-    char text[KICAD_MAX_PROP_LEN];
-    double x, y;
-    int is_global;
-} KicadLabel;
-
-struct KicadSch {
-    char*          raw_content;
-    size_t         raw_len;
-
-    /* Scratch buffer with lib_symbols section removed (for parsing) */
-    char*          cleaned_content;
-    size_t         cleaned_len;
-
-    KicadComponent components[KICAD_MAX_COMPONENTS];
-    int            component_count;
-
-    KicadWire      wires[KICAD_MAX_WIRES];
-    int            wire_count;
-
-    KicadLabel     labels[KICAD_MAX_LABELS];
-    int            label_count;
-
-    char*          json_cache;
-    char*          svg_cache;
-};
 
 /* ------------------------------------------------------------------ */
 /* Low-level helpers                                                    */
@@ -631,6 +575,7 @@ int kicad_sch_close(KicadSch* h)
     }
     free(h->json_cache);
     free(h->svg_cache);
+    free(h->erc_cache);
     free(h);
     return 0;
 }

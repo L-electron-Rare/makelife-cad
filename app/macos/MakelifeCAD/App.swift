@@ -49,6 +49,17 @@ enum AppTab: String, CaseIterable {
     }
 }
 
+// MARK: - Violations panel visibility
+
+extension AppTab {
+    var checkLabel: String {
+        switch self {
+        case .schematic: return "Run ERC"
+        case .pcb:       return "Run DRC"
+        }
+    }
+}
+
 // MARK: - ContentView
 
 struct ContentView: View {
@@ -60,6 +71,7 @@ struct ContentView: View {
     @Binding var activeTab: AppTab
 
     @State private var activeLayerId: Int? = nil
+    @State private var showViolations: Bool = false
 
     var body: some View {
         NavigationSplitView {
@@ -116,11 +128,33 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detail: some View {
+        VSplitView {
+            // Main viewer — takes most space
+            Group {
+                switch activeTab {
+                case .schematic:
+                    SchematicView(bridge: schBridge, selectedComponent: $selectedComponent)
+                case .pcb:
+                    PCBView(bridge: pcbBridge, activeLayerId: $activeLayerId)
+                }
+            }
+            .frame(minHeight: 300)
+
+            // Violations panel — collapsible bottom strip
+            if showViolations {
+                violationsPanel
+                    .frame(minHeight: 120, idealHeight: 200, maxHeight: 320)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var violationsPanel: some View {
         switch activeTab {
         case .schematic:
-            SchematicView(bridge: schBridge, selectedComponent: $selectedComponent)
+            ViolationsView(kind: .erc(schBridge))
         case .pcb:
-            PCBView(bridge: pcbBridge, activeLayerId: $activeLayerId)
+            ViolationsView(kind: .drc(pcbBridge))
         }
     }
 
@@ -153,6 +187,17 @@ struct ContentView: View {
             }
             .help("Close current file")
             .disabled(activeTab == .schematic ? !schBridge.isLoaded : !pcbBridge.isLoaded)
+        }
+
+        ToolbarItem {
+            Button {
+                showViolations.toggle()
+            } label: {
+                Label(activeTab.checkLabel,
+                      systemImage: showViolations ? "exclamationmark.triangle.fill"
+                                                  : "exclamationmark.triangle")
+            }
+            .help(showViolations ? "Hide violations panel" : "Show \(activeTab.checkLabel) panel")
         }
     }
 

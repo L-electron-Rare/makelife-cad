@@ -6,108 +6,13 @@
  */
 
 #include "kicad_bridge.h"
+#include "kicad_bridge_internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
-
-/* ------------------------------------------------------------------ */
-/* Constants                                                            */
-/* ------------------------------------------------------------------ */
-
-#define PCB_MAX_FOOTPRINTS  2048
-#define PCB_MAX_SEGMENTS    16384
-#define PCB_MAX_VIAS        2048
-#define PCB_MAX_ZONES       512
-#define PCB_MAX_PADS        64        /* pads per footprint */
-#define PCB_MAX_POLY_PTS    256       /* polygon points per zone */
-#define PCB_MAX_LAYERS      64
-#define PCB_MAX_PROP_LEN    256
-#define PCB_JSON_BUF_SIZE   (1 << 20) /* 1 MB */
-#define PCB_SVG_BUF_SIZE    (8 << 20) /* 8 MB */
-
-/* ------------------------------------------------------------------ */
-/* Internal types                                                       */
-/* ------------------------------------------------------------------ */
-
-typedef struct {
-    int    id;
-    char   name[PCB_MAX_PROP_LEN];
-    char   color[16];    /* hex color */
-    int    visible;
-} PcbLayer;
-
-typedef struct {
-    char   shape[32];    /* "circle", "rect", "oval", "roundrect", "custom" */
-    double x, y;         /* position relative to footprint */
-    double w, h;         /* size */
-    int    layer_id;
-    char   net[PCB_MAX_PROP_LEN];
-    char   number[32];
-} PcbPad;
-
-typedef struct {
-    char   reference[PCB_MAX_PROP_LEN];
-    char   value[PCB_MAX_PROP_LEN];
-    double x, y;
-    double angle;
-    int    layer_id;     /* 0=F.Cu (top), 31=B.Cu (bottom) */
-    PcbPad pads[PCB_MAX_PADS];
-    int    pad_count;
-} PcbFootprint;
-
-typedef struct {
-    double x1, y1, x2, y2;
-    double width;
-    int    layer_id;
-    char   net[PCB_MAX_PROP_LEN];
-} PcbSegment;
-
-typedef struct {
-    double x, y;
-    double size;         /* drill diameter */
-    int    layer_from;
-    int    layer_to;
-    char   net[PCB_MAX_PROP_LEN];
-} PcbVia;
-
-typedef struct {
-    int    layer_id;
-    char   net[PCB_MAX_PROP_LEN];
-    double pts_x[PCB_MAX_POLY_PTS];
-    double pts_y[PCB_MAX_POLY_PTS];
-    int    pt_count;
-} PcbZone;
-
-/* The opaque handle returned to callers */
-typedef struct KicadPcb KicadPcb;
-struct KicadPcb {
-    char*        raw_content;
-    size_t       raw_len;
-
-    PcbLayer     layers[PCB_MAX_LAYERS];
-    int          layer_count;
-
-    PcbFootprint footprints[PCB_MAX_FOOTPRINTS];
-    int          footprint_count;
-
-    PcbSegment   segments[PCB_MAX_SEGMENTS];
-    int          segment_count;
-
-    PcbVia       vias[PCB_MAX_VIAS];
-    int          via_count;
-
-    PcbZone      zones[PCB_MAX_ZONES];
-    int          zone_count;
-
-    /* Cached outputs — allocated on first request */
-    char*        layers_json;
-    char*        footprints_json;
-    /* Per-layer SVG cache: indexed by layer_id (0..63) */
-    char*        layer_svg[PCB_MAX_LAYERS];
-};
 
 /* ------------------------------------------------------------------ */
 /* Shared S-expression helpers (mirror of bridge_sch.c)                */
@@ -990,6 +895,7 @@ int kicad_pcb_close(kicad_pcb_handle h)
     free(pcb->footprints_json);
     for (int i = 0; i < PCB_MAX_LAYERS; i++)
         free(pcb->layer_svg[i]);
+    free(pcb->drc_cache);
     free(pcb);
     return 0;
 }

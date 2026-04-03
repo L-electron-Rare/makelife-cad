@@ -4,6 +4,9 @@
 extern "C" {
 #endif
 
+/* Shared constants */
+#define PCB_MAX_PROP_LEN 256
+
 /* ------------------------------------------------------------------ */
 /* Schematic API                                                        */
 /* ------------------------------------------------------------------ */
@@ -62,6 +65,26 @@ const char* kicad_pcb_render_layer_svg(kicad_pcb_handle h, int layer_id,
 
 /* Free resources. Always call this after use. Returns 0 on success. */
 int kicad_pcb_close(kicad_pcb_handle h);
+
+/* ------------------------------------------------------------------ */
+/* DRC / ERC API                                                        */
+/* ------------------------------------------------------------------ */
+
+/* Run basic Design Rule Checks on a PCB.
+ * Returns a JSON array of violation objects:
+ * [{"severity":"error","rule":"min_track_width","location":{"x":..,"y":..},
+ *   "message":"...","layer":"F.Cu"}, ...]
+ * Returned pointer is owned by the handle — valid until kicad_pcb_close().
+ * Returns NULL on error. */
+const char* kicad_run_drc_json(kicad_pcb_handle h);
+
+/* Run basic Electrical Rule Checks on a schematic.
+ * Returns a JSON array of violation objects:
+ * [{"severity":"warning","rule":"unconnected_pin","component":"U1","pin":"3",
+ *   "message":"Pin 3 of U1 is not connected"}, ...]
+ * Returned pointer is owned by the handle — valid until kicad_sch_close().
+ * Returns NULL on error. */
+const char* kicad_run_erc_json(KicadSch* h);
 
 #ifdef __cplusplus
 }
