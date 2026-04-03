@@ -187,14 +187,25 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
 				MARKETING_VERSION = 0.1.0;
+				OTHER_LINKER_FLAGS = (
+					"-lkicad_bridge",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
 				PRODUCT_NAME = MakelifeCAD;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h";
+				SWIFT_VERSION = 5.10;
 			};
 			name = Debug;
 		};
@@ -249,25 +260,15 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/include",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/build",
-				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LINKER_FLAGS = (
-					"-lkicad_bridge",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OBJC_BRIDGING_HEADER = "MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.10;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -316,24 +317,14 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/include",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/build",
-				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				OTHER_LINKER_FLAGS = (
-					"-lkicad_bridge",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OBJC_BRIDGING_HEADER = "MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.10;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -345,14 +336,25 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
 				MARKETING_VERSION = 0.1.0;
+				OTHER_LINKER_FLAGS = (
+					"-lkicad_bridge",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
 				PRODUCT_NAME = MakelifeCAD;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h";
+				SWIFT_VERSION = 5.10;
 			};
 			name = Release;
 		};

@@ -326,8 +326,10 @@ enum PCBSceneBuilder {
         let labelNode = SCNNode(geometry: text)
         let (minVec, maxVec) = node.boundingBox
         let w = maxVec.x - minVec.x
-        labelNode.position = SCNVector3(-w * 0.4, Float(comp.heightMM / 2 + 0.01), 0)
-        labelNode.scale    = SCNVector3(0.5, 0.5, 0.5)
+        let yPos = Float(comp.heightMM / 2 + 0.01)
+        let xPos: Float = Float(-w * 0.4)
+        labelNode.position = SCNVector3(xPos, yPos, Float(0))
+        labelNode.scale    = SCNVector3(Float(0.5), Float(0.5), Float(0.5))
         node.addChildNode(labelNode)
     }
 

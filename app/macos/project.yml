@@ -4,17 +4,6 @@ options:
   deploymentTarget:
     macOS: "14.0"
 
-settings:
-  base:
-    SWIFT_OBJC_BRIDGING_HEADER: MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h
-    HEADER_SEARCH_PATHS:
-      - $(PROJECT_DIR)/../../kicad-bridge/include
-    LIBRARY_SEARCH_PATHS:
-      - $(PROJECT_DIR)/../../kicad-bridge/build
-    OTHER_LINKER_FLAGS:
-      - -lkicad_bridge
-    SWIFT_VERSION: "5.10"
-
 targets:
   MakelifeCAD:
     type: application
@@ -29,3 +18,11 @@ targets:
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: 1
         CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "5.10"
+        SWIFT_OBJC_BRIDGING_HEADER: MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h
+        HEADER_SEARCH_PATHS:
+          - $(PROJECT_DIR)/../../kicad-bridge/include
+        LIBRARY_SEARCH_PATHS:
+          - $(PROJECT_DIR)/../../kicad-bridge/build
+        OTHER_LINKER_FLAGS:
+          - -lkicad_bridge

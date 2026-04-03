@@ -391,7 +391,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     // MARK: - Private
 
-    private var handle: OpaquePointer?   // KicadSch*
+    private var handle: UnsafeMutableRawPointer?   // KicadSch*
 
     // Undo/redo availability is tracked by a simple depth counter because
     // the C layer owns the truth; Swift mirrors it.
@@ -405,10 +405,10 @@ final class KiCadSchEditBridge: ObservableObject {
         guard FileManager.default.fileExists(atPath: path) else {
             throw KiCadBridgeError.fileNotFound(path)
         }
-        guard let h = kicad_sch_open(path) else {
+        guard let h = kbs_sch_open(path) else {
             throw KiCadBridgeError.parseError(path)
         }
-        handle = OpaquePointer(h)
+        handle = h
         reloadItems()
         isDirty   = false
         undoDepth = 0
@@ -418,7 +418,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     func close() {
         guard let h = handle else { return }
-        kicad_sch_close(UnsafeMutablePointer(h))
+        kbs_sch_close(h)
         handle    = nil
         items     = []
         isDirty   = false
@@ -432,7 +432,7 @@ final class KiCadSchEditBridge: ObservableObject {
     @discardableResult
     func addSymbol(libId: String, x: Double, y: Double) -> UInt64 {
         guard let h = handle else { return 0 }
-        let itemId = kicad_sch_add_symbol(UnsafeMutablePointer(h), libId, x, y)
+        let itemId = kbs_sch_add_symbol(h, libId, x, y)
         if itemId > 0 {
             markDirty()
             reloadItems()
@@ -443,7 +443,7 @@ final class KiCadSchEditBridge: ObservableObject {
     @discardableResult
     func addWire(x1: Double, y1: Double, x2: Double, y2: Double) -> UInt64 {
         guard let h = handle else { return 0 }
-        let itemId = kicad_sch_add_wire(UnsafeMutablePointer(h), x1, y1, x2, y2)
+        let itemId = kbs_sch_add_wire(h, x1, y1, x2, y2)
         if itemId > 0 {
             markDirty()
             reloadItems()
@@ -454,7 +454,7 @@ final class KiCadSchEditBridge: ObservableObject {
     @discardableResult
     func addLabel(text: String, x: Double, y: Double) -> UInt64 {
         guard let h = handle else { return 0 }
-        let itemId = kicad_sch_add_label(UnsafeMutablePointer(h), text, x, y)
+        let itemId = kbs_sch_add_label(h, text, x, y)
         if itemId > 0 {
             markDirty()
             reloadItems()
@@ -464,7 +464,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     func moveItem(id: UInt64, dx: Double, dy: Double) {
         guard let h = handle else { return }
-        let result = kicad_sch_move_item(UnsafeMutablePointer(h), id, dx, dy)
+        let result = kbs_sch_move_item(h, id, dx, dy)
         if result == 0 {
             markDirty()
             reloadItems()
@@ -473,7 +473,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     func deleteItem(id: UInt64) {
         guard let h = handle else { return }
-        let result = kicad_sch_delete_item(UnsafeMutablePointer(h), id)
+        let result = kbs_sch_delete_item(h, id)
         if result == 0 {
             markDirty()
             reloadItems()
@@ -482,7 +482,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     func setProperty(id: UInt64, key: String, value: String) {
         guard let h = handle else { return }
-        let result = kicad_sch_set_property(UnsafeMutablePointer(h), id, key, value)
+        let result = kbs_sch_set_property(h, id, key, value)
         if result == 0 {
             markDirty()
             reloadItems()
@@ -493,7 +493,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     func undo() {
         guard let h = handle, canUndo else { return }
-        let result = kicad_sch_undo(UnsafeMutablePointer(h))
+        let result = kbs_sch_undo(h)
         if result == 0 {
             undoDepth = max(0, undoDepth - 1)
             redoDepth += 1
@@ -505,7 +505,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     func redo() {
         guard let h = handle, canRedo else { return }
-        let result = kicad_sch_redo(UnsafeMutablePointer(h))
+        let result = kbs_sch_redo(h)
         if result == 0 {
             redoDepth = max(0, redoDepth - 1)
             undoDepth += 1
@@ -521,7 +521,7 @@ final class KiCadSchEditBridge: ObservableObject {
         guard let h = handle else {
             throw KiCadBridgeError.editFailed
         }
-        let result = kicad_sch_save(UnsafeMutablePointer(h), path)
+        let result = kbs_sch_save(h, path)
         guard result == 0 else {
             throw KiCadBridgeError.parseError("save failed: \(path)")
         }
@@ -532,7 +532,7 @@ final class KiCadSchEditBridge: ObservableObject {
 
     private func reloadItems() {
         guard let h = handle else { items = []; return }
-        guard let jsonPtr = kicad_sch_get_items_json(UnsafeMutablePointer(h))
+        guard let jsonPtr = kbs_sch_get_items_json(h)
         else { return }
         let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
                         count: strlen(jsonPtr),
@@ -567,7 +567,7 @@ final class KiCadBridge: ObservableObject {
     @Published private(set) var isLoaded: Bool = false
     @Published private(set) var errorMessage: String?
 
-    private var handle: OpaquePointer?  // KicadSch*
+    private var handle: UnsafeMutableRawPointer?  // KicadSch*
 
     // MARK: - Public API
 
@@ -576,10 +576,10 @@ final class KiCadBridge: ObservableObject {
         guard FileManager.default.fileExists(atPath: path) else {
             throw KiCadBridgeError.fileNotFound(path)
         }
-        guard let h = kicad_sch_open(path) else {
+        guard let h = kbs_sch_open(path) else {
             throw KiCadBridgeError.parseError(path)
         }
-        handle = OpaquePointer(h)
+        handle = h
         try loadComponents()
         try loadSVG()
         isLoaded = true
@@ -590,7 +590,7 @@ final class KiCadBridge: ObservableObject {
     /// The result is cached by the C bridge until the handle is closed.
     func runERC() -> [DRCViolation] {
         guard let h = handle else { return [] }
-        guard let jsonPtr = kicad_run_erc_json(UnsafeMutablePointer(h)) else { return [] }
+        guard let jsonPtr = kbs_run_erc_json(h) else { return [] }
         let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
                         count: strlen(jsonPtr),
                         deallocator: .none)
@@ -599,7 +599,7 @@ final class KiCadBridge: ObservableObject {
 
     func close() {
         guard let h = handle else { return }
-        kicad_sch_close(UnsafeMutablePointer(h))
+        kbs_sch_close(h)
         handle = nil
         components = []
         svgContent = ""
@@ -610,7 +610,7 @@ final class KiCadBridge: ObservableObject {
 
     private func loadComponents() throws {
         guard let h = handle else { return }
-        guard let jsonPtr = kicad_sch_get_components_json(UnsafeMutablePointer(h)) else {
+        guard let jsonPtr = kbs_sch_get_components_json(h) else {
             throw KiCadBridgeError.parseError("components JSON")
         }
         let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
@@ -621,7 +621,7 @@ final class KiCadBridge: ObservableObject {
 
     private func loadSVG() throws {
         guard let h = handle else { return }
-        guard let svgPtr = kicad_sch_render_svg(UnsafeMutablePointer(h)) else {
+        guard let svgPtr = kbs_sch_render_svg(h) else {
             throw KiCadBridgeError.renderError
         }
         svgContent = String(cString: svgPtr)
