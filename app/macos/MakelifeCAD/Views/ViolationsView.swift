@@ -146,14 +146,19 @@ struct ViolationsView: View {
     // MARK: - Action
 
     private func runCheck() {
+        guard !isRunning else { return }
         isRunning = true
-        // Run synchronously on main thread — C bridge is fast for typical boards
-        switch kind {
-        case .drc(let b): violations = b.runDRC()
-        case .erc(let b): violations = b.runERC()
+        Task { @MainActor in
+            // Yield once so SwiftUI can render the disabled/spinner state before the
+            // C bridge call blocks the main thread (fast for typical boards).
+            await Task.yield()
+            switch kind {
+            case .drc(let b): violations = b.runDRC()
+            case .erc(let b): violations = b.runERC()
+            }
+            hasRun = true
+            isRunning = false
         }
-        hasRun = true
-        isRunning = false
     }
 }
 

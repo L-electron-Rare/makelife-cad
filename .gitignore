@@ -99,3 +99,10 @@ DerivedData/
 
 # CI artifacts
 .ci_artifacts/
+
+# Additional local caches
+.ruff_cache/
+.hypothesis/
+.tox/
+.ipynb_checkpoints/
+.pnpm-store/

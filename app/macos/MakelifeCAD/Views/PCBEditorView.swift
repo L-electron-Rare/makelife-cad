@@ -39,7 +39,7 @@ struct PCBCanvasItem: Identifiable {
 
 @MainActor
 final class PCBEditorViewModel: ObservableObject {
-    let bridge: KiCadPCBBridge
+    var bridge: KiCadPCBBridge
 
     @Published var items: [PCBCanvasItem] = []
     @Published var selectedItemID: Int32? = nil

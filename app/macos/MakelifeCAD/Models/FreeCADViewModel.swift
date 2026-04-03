@@ -143,11 +143,10 @@ final class FreeCADViewModel: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published private(set) var isExporting = false
 
+    // gatewayBaseURL is kept in sync by App.swift via .onChange(of: fineFabVM.baseURL).
+    // FineFabViewModel is the single owner of the "finefab.gateway.url" UserDefaults key.
     @Published var gatewayBaseURL: String {
-        didSet {
-            UserDefaults.standard.set(gatewayBaseURL, forKey: "finefab.gateway.url")
-            client = FineFabClient(baseURL: gatewayBaseURL)
-        }
+        didSet { client = FineFabClient(baseURL: gatewayBaseURL) }
     }
 
     private var client: FineFabClient
@@ -163,10 +162,9 @@ final class FreeCADViewModel: ObservableObject {
     func attach(project: YiacadProject?) {
         currentProject = project
         documents = project?.freecadDocuments ?? []
-        if project == nil {
-            gatewayStatus = nil
-            lastExportJob = nil
-        }
+        // Clear stale results on every project change, not only when closing.
+        gatewayStatus = nil
+        lastExportJob = nil
         if let selectedDocument, documents.contains(selectedDocument) {
             self.selectedDocument = selectedDocument
         } else {
@@ -475,27 +473,35 @@ final class FreeCADViewModel: ObservableObject {
         executable: String,
         arguments: [String]
     ) async throws -> FreeCADCommandResult {
-        try await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = arguments
+        // Use a DispatchQueue + continuation instead of Task.detached so that
+        // process.waitUntilExit() blocks a GCD thread, not the Swift cooperative pool.
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: executable)
+                    process.arguments = arguments
 
-            let stdoutPipe = Pipe()
-            let stderrPipe = Pipe()
-            process.standardOutput = stdoutPipe
-            process.standardError = stderrPipe
+                    let stdoutPipe = Pipe()
+                    let stderrPipe = Pipe()
+                    process.standardOutput = stdoutPipe
+                    process.standardError = stderrPipe
 
-            try process.run()
-            process.waitUntilExit()
+                    try process.run()
+                    process.waitUntilExit()
 
-            let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-            return FreeCADCommandResult(
-                exitCode: process.terminationStatus,
-                stdout: String(data: stdoutData, encoding: .utf8) ?? "",
-                stderr: String(data: stderrData, encoding: .utf8) ?? ""
-            )
-        }.value
+                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    continuation.resume(returning: FreeCADCommandResult(
+                        exitCode: process.terminationStatus,
+                        stdout: String(data: stdoutData, encoding: .utf8) ?? "",
+                        stderr: String(data: stderrData, encoding: .utf8) ?? ""
+                    ))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 
     private func runDetachedOpen(arguments: [String]) throws {

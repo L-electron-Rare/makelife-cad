@@ -70,8 +70,13 @@ final class KiCadPCBBridge: ObservableObject {
             throw KiCadBridgeError.parseError(path)
         }
         handle = h
-        try loadLayers()
-        try loadFootprints()
+        do {
+            try loadLayers()
+            try loadFootprints()
+        } catch {
+            closePCB()   // free C handle if partial init fails
+            throw error
+        }
         isLoaded = true
         errorMessage = nil
     }
@@ -94,9 +99,9 @@ final class KiCadPCBBridge: ObservableObject {
     func runDRC() -> [DRCViolation] {
         guard let h = handle else { return [] }
         guard let jsonPtr = kicad_run_drc_json(h) else { return [] }
-        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
-                        count: strlen(jsonPtr),
-                        deallocator: .none)
+        let len = strlen(jsonPtr)
+        guard len > 0, len < 10_000_000 else { return [] }
+        let data = Data(bytes: jsonPtr, count: len)
         return (try? JSONDecoder().decode([DRCViolation].self, from: data)) ?? []
     }
 
@@ -116,9 +121,9 @@ final class KiCadPCBBridge: ObservableObject {
         guard let jsonPtr = kicad_pcb_get_layers_json(h) else {
             throw KiCadBridgeError.parseError("layers JSON")
         }
-        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
-                        count: strlen(jsonPtr),
-                        deallocator: .none)
+        let len = strlen(jsonPtr)
+        guard len > 0, len < 10_000_000 else { throw KiCadBridgeError.parseError("layers JSON") }
+        let data = Data(bytes: jsonPtr, count: len)
         layers = try JSONDecoder().decode([PCBLayer].self, from: data)
     }
 
@@ -127,9 +132,9 @@ final class KiCadPCBBridge: ObservableObject {
         guard let jsonPtr = kicad_pcb_get_footprints_json(h) else {
             throw KiCadBridgeError.parseError("footprints JSON")
         }
-        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
-                        count: strlen(jsonPtr),
-                        deallocator: .none)
+        let len = strlen(jsonPtr)
+        guard len > 0, len < 10_000_000 else { throw KiCadBridgeError.parseError("footprints JSON") }
+        let data = Data(bytes: jsonPtr, count: len)
         footprints = try JSONDecoder().decode([PCBFootprint].self, from: data)
     }
 }
@@ -532,11 +537,10 @@ final class KiCadSchEditBridge: ObservableObject {
 
     private func reloadItems() {
         guard let h = handle else { items = []; return }
-        guard let jsonPtr = kbs_sch_get_items_json(h)
-        else { return }
-        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
-                        count: strlen(jsonPtr),
-                        deallocator: .none)
+        guard let jsonPtr = kbs_sch_get_items_json(h) else { return }
+        let len = strlen(jsonPtr)
+        guard len > 0, len < 10_000_000 else { return }
+        let data = Data(bytes: jsonPtr, count: len)
         if let decoded = try? JSONDecoder().decode([SchItem].self, from: data) {
             items = decoded
         }
@@ -580,8 +584,13 @@ final class KiCadBridge: ObservableObject {
             throw KiCadBridgeError.parseError(path)
         }
         handle = h
-        try loadComponents()
-        try loadSVG()
+        do {
+            try loadComponents()
+            try loadSVG()
+        } catch {
+            close()   // free C handle if partial init fails
+            throw error
+        }
         isLoaded = true
         errorMessage = nil
     }
@@ -591,9 +600,9 @@ final class KiCadBridge: ObservableObject {
     func runERC() -> [DRCViolation] {
         guard let h = handle else { return [] }
         guard let jsonPtr = kbs_run_erc_json(h) else { return [] }
-        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
-                        count: strlen(jsonPtr),
-                        deallocator: .none)
+        let len = strlen(jsonPtr)
+        guard len > 0, len < 10_000_000 else { return [] }
+        let data = Data(bytes: jsonPtr, count: len)
         return (try? JSONDecoder().decode([DRCViolation].self, from: data)) ?? []
     }
 
@@ -613,9 +622,9 @@ final class KiCadBridge: ObservableObject {
         guard let jsonPtr = kbs_sch_get_components_json(h) else {
             throw KiCadBridgeError.parseError("components JSON")
         }
-        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
-                        count: strlen(jsonPtr),
-                        deallocator: .none)
+        let len = strlen(jsonPtr)
+        guard len > 0, len < 10_000_000 else { throw KiCadBridgeError.parseError("components JSON") }
+        let data = Data(bytes: jsonPtr, count: len)
         components = try JSONDecoder().decode([SchematicComponent].self, from: data)
     }
 

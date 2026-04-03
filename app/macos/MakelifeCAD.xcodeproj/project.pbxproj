@@ -30,15 +30,15 @@
 		6CD36E78EFAC5729855F6799 /* PCBInspectorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5710CA2BA087FFCF79DC3AEA /* PCBInspectorPanel.swift */; };
 		79D12883DD23B0DACBA9BEED /* PropertyEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52A9F1A669F8B5904FC7C15 /* PropertyEditor.swift */; };
 		8524BD01CD24AF285CFC9F8E /* KiCadProDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF76436F69E7183829DC365D /* KiCadProDocument.swift */; };
-		8C7F963D2F7FC7C500ECB1CE /* CrossRefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C7F963C2F7FC7C500ECB1CE /* CrossRefView.swift */; };
-		8C7F963F2F7FC7EF00ECB1CE /* AnnotationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C7F963E2F7FC7EF00ECB1CE /* AnnotationsView.swift */; };
 		95186AE92ED0C5FE3A328087 /* KiCadBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156296D04E695F91BAF0C165 /* KiCadBridge.swift */; };
 		95378695B7014D44C109F75D /* GitHubLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2D2799937EB71C6D633341 /* GitHubLibraryViewModel.swift */; };
+		974896398C4BEBFA2D9EC1AA /* CrossRefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B92690A1C5E431EBD7104F7 /* CrossRefView.swift */; };
 		97E344214E931FF2FE9883E0 /* BOMWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37425CB9263A50480D3B3DE9 /* BOMWindow.swift */; };
 		9BB96ADC975F890A27751BEB /* PCBView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2286D86D2E0389FA81DD974 /* PCBView.swift */; };
 		A5372E5FB3E727D79B345B2E /* GitDiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C652E7B5A6FDF686C60412 /* GitDiffView.swift */; };
 		AFD7DFF104EE4F562E7366A8 /* FineFabClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEE03C0AF50C19ADA2C9382 /* FineFabClient.swift */; };
 		B47124CC18022FAC9AEAB809 /* SchematicEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E62F574D0D8DBFB55A05E7DC /* SchematicEditorView.swift */; };
+		C365F78F9BFC51A8C99D8463 /* AnnotationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06EA591C8475E00379E607DF /* AnnotationsView.swift */; };
 		C4C83E0470271C8ACC403C78 /* KiCadProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10C9FB4E19B07BB592F5443 /* KiCadProject.swift */; };
 		DF25F3179905255206EF53BB /* ComponentList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38F174EA3FBA848FFF9B414 /* ComponentList.swift */; };
 		E24CF53122E4DA4D9BCA50A3 /* FineFabViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B8A75001038B112215B70A /* FineFabViewModel.swift */; };
@@ -60,10 +60,12 @@
 
 /* Begin PBXFileReference section */
 		00B8D7CE8E36B8F8957074F4 /* FreeCADPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeCADPanel.swift; sourceTree = "<group>"; };
+		06EA591C8475E00379E607DF /* AnnotationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationsView.swift; sourceTree = "<group>"; };
 		10A7C0EB3B7F26582EC006FE /* AppleIntelligenceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceViewModel.swift; sourceTree = "<group>"; };
 		1316B6CB3E6A3743D2745913 /* LayerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerPanel.swift; sourceTree = "<group>"; };
 		1540C5EC138D5E459F392CCC /* GitDiffViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitDiffViewModel.swift; sourceTree = "<group>"; };
 		156296D04E695F91BAF0C165 /* KiCadBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KiCadBridge.swift; sourceTree = "<group>"; };
+		1B92690A1C5E431EBD7104F7 /* CrossRefView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossRefView.swift; sourceTree = "<group>"; };
 		2FAB4E02DD3803D2DBA60AED /* SchematicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchematicView.swift; sourceTree = "<group>"; };
 		35C69BEED1E065868427E49A /* MakelifeCAD-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MakelifeCAD-Bridging-Header.h"; sourceTree = "<group>"; };
 		37425CB9263A50480D3B3DE9 /* BOMWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BOMWindow.swift; sourceTree = "<group>"; };
@@ -81,8 +83,6 @@
 		7957EB1D21761AC68598B17E /* FreeCADViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeCADViewModel.swift; sourceTree = "<group>"; };
 		81B7EEBFFD695B1FCC437CAB /* CommandRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandRunner.swift; sourceTree = "<group>"; };
 		864E8C963ED8B73DEF760D97 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
-		8C7F963C2F7FC7C500ECB1CE /* CrossRefView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossRefView.swift; sourceTree = "<group>"; };
-		8C7F963E2F7FC7EF00ECB1CE /* AnnotationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationsView.swift; sourceTree = "<group>"; };
 		94F0FB87125D1EB06547FCB4 /* FootprintPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FootprintPalette.swift; sourceTree = "<group>"; };
 		9A91144B32A44D5063026D24 /* SymbolPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolPalette.swift; sourceTree = "<group>"; };
 		9DCC7C4165FEF0EF2E8D7390 /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
@@ -133,9 +133,11 @@
 			isa = PBXGroup;
 			children = (
 				6E2B75B75DFC38AF7B1B1DF8 /* AIPanel.swift */,
+				06EA591C8475E00379E607DF /* AnnotationsView.swift */,
 				37425CB9263A50480D3B3DE9 /* BOMWindow.swift */,
 				9DCC7C4165FEF0EF2E8D7390 /* CommandPaletteView.swift */,
 				E38F174EA3FBA848FFF9B414 /* ComponentList.swift */,
+				1B92690A1C5E431EBD7104F7 /* CrossRefView.swift */,
 				5E4F2A05D4EA5A1F29BFE52B /* FabPreviewView.swift */,
 				94F0FB87125D1EB06547FCB4 /* FootprintPalette.swift */,
 				00B8D7CE8E36B8F8957074F4 /* FreeCADPanel.swift */,
@@ -156,8 +158,6 @@
 				9A91144B32A44D5063026D24 /* SymbolPalette.swift */,
 				FDE1CE01C6853F58758D11A0 /* TerminalWindow.swift */,
 				5025C1A85B2BA0AD6FDEC3AD /* ViolationsView.swift */,
-				8C7F963C2F7FC7C500ECB1CE /* CrossRefView.swift */,
-				8C7F963E2F7FC7EF00ECB1CE /* AnnotationsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -290,13 +290,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				533653D83CE8363D050F9769 /* AIPanel.swift in Sources */,
+				C365F78F9BFC51A8C99D8463 /* AnnotationsView.swift in Sources */,
 				23E8C4FD9AB46256E1095B7E /* App.swift in Sources */,
 				41FDB3816CC4E0E40E7E2503 /* AppleIntelligenceViewModel.swift in Sources */,
-				8C7F963D2F7FC7C500ECB1CE /* CrossRefView.swift in Sources */,
 				97E344214E931FF2FE9883E0 /* BOMWindow.swift in Sources */,
 				E6B72ABDA352E16D25C350EB /* CommandPaletteView.swift in Sources */,
 				E5EE16835B02288D56676D58 /* CommandRunner.swift in Sources */,
 				DF25F3179905255206EF53BB /* ComponentList.swift in Sources */,
+				974896398C4BEBFA2D9EC1AA /* CrossRefView.swift in Sources */,
 				0263E675A465D0F53057F9E0 /* FabPreviewView.swift in Sources */,
 				AFD7DFF104EE4F562E7366A8 /* FineFabClient.swift in Sources */,
 				E24CF53122E4DA4D9BCA50A3 /* FineFabViewModel.swift in Sources */,
@@ -318,7 +319,6 @@
 				6CD36E78EFAC5729855F6799 /* PCBInspectorPanel.swift in Sources */,
 				9BB96ADC975F890A27751BEB /* PCBView.swift in Sources */,
 				22C499541464346CE3D1A0E7 /* ProjectPanel.swift in Sources */,
-				8C7F963F2F7FC7EF00ECB1CE /* AnnotationsView.swift in Sources */,
 				79D12883DD23B0DACBA9BEED /* PropertyEditor.swift in Sources */,
 				032DE702E020E8A14B7B0C3D /* SchematicDocumentView.swift in Sources */,
 				B47124CC18022FAC9AEAB809 /* SchematicEditorView.swift in Sources */,
@@ -354,13 +354,17 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad.tests";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;
@@ -374,13 +378,17 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad.tests";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;
@@ -396,14 +404,20 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
 				MARKETING_VERSION = 0.1.0;
-				OTHER_LDFLAGS = "-lkicad_bridge";
+				OTHER_LDFLAGS = (
+					"-lkicad_bridge",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
 				PRODUCT_NAME = MakelifeCAD;
 				SDKROOT = macosx;
@@ -539,14 +553,20 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
 				MARKETING_VERSION = 0.1.0;
-				OTHER_LDFLAGS = "-lkicad_bridge";
+				OTHER_LDFLAGS = (
+					"-lkicad_bridge",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
 				PRODUCT_NAME = MakelifeCAD;
 				SDKROOT = macosx;

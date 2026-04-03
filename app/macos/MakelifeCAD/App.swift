@@ -51,6 +51,8 @@ struct MakelifeCADApp: App {
             .environmentObject(fineFabVM)
             .environmentObject(freecadVM)
             .task {
+                // Wire pcbEditorVM to the shared bridge (can't be done at @StateObject init time)
+                pcbEditorVM.bridge = pcbBridge
                 freecadVM.gatewayBaseURL = fineFabVM.baseURL
                 freecadVM.attach(project: projectManager.currentProject)
                 await freecadVM.refreshAll()
