@@ -6,12 +6,14 @@ import UniformTypeIdentifiers
 @main
 struct MakelifeCADApp: App {
 
-    @StateObject private var schBridge  = KiCadBridge()
-    @StateObject private var pcbBridge  = KiCadPCBBridge()
+    @StateObject private var schBridge   = KiCadBridge()
+    @StateObject private var pcbBridge   = KiCadPCBBridge()
+    @StateObject private var editBridge  = KiCadSchEditBridge()
     @State private var selectedComponent: SchematicComponent?
     @State private var selectedFootprint: PCBFootprint?
     @State private var showFileImporter  = false
     @State private var activeTab: AppTab = .schematic
+    @State private var currentSchFilePath: String? = nil
 
     // PCB editor ViewModel — created once and kept alive for the session.
     @StateObject private var pcbEditorVM = PCBEditorViewModel(bridge: KiCadPCBBridge())
@@ -59,6 +61,9 @@ struct MakelifeCADApp: App {
             CommandGroup(replacing: .saveItem) {
                 Button("Save PCB\u{2026}") { savePCB() }
                     .keyboardShortcut("s", modifiers: .command)
+                Button("Save Schematic") { trySaveSchematic() }
+                    .keyboardShortcut("s", modifiers: [.command, .option])
+                    .disabled(!editBridge.isDirty)
                 Button("Import Netlist\u{2026}") { importNetlist() }
             }
         }
@@ -87,6 +92,23 @@ struct MakelifeCADApp: App {
            let json = try? String(contentsOf: url, encoding: .utf8) {
             _ = pcbEditorVM.bridge.importNetlist(json)
         }
+    }
+
+    @MainActor
+    func trySaveSchematic() {
+        guard let path = currentSchFilePath else {
+            let panel = NSSavePanel()
+            if let uti = UTType(filenameExtension: "kicad_sch") {
+                panel.allowedContentTypes = [uti]
+            }
+            panel.nameFieldStringValue = "untitled.kicad_sch"
+            if panel.runModal() == .OK, let url = panel.url {
+                currentSchFilePath = url.path
+                try? editBridge.save(path: url.path)
+            }
+            return
+        }
+        try? editBridge.save(path: path)
     }
 }
 
