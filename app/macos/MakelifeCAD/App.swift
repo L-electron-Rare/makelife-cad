@@ -117,11 +117,13 @@ struct MakelifeCADApp: App {
 enum AppTab: String, CaseIterable {
     case schematic = "Schematic"
     case pcb       = "PCB"
+    case viewer3d  = "3D"
 
     var systemImage: String {
         switch self {
         case .schematic: return "doc.richtext"
         case .pcb:       return "cpu"
+        case .viewer3d:  return "view.3d"
         }
     }
 }
@@ -133,6 +135,7 @@ extension AppTab {
         switch self {
         case .schematic: return "Run ERC"
         case .pcb:       return "Run DRC"
+        case .viewer3d:  return "Run DRC"
         }
     }
 }
@@ -197,6 +200,16 @@ struct ContentView: View {
                 LayerPanel(bridge: pcbBridge,
                            activeLayerId: $activeLayerId,
                            selectedFootprint: $selectedFootprint)
+            case .viewer3d:
+                VStack {
+                    Spacer()
+                    Text("3D layer controls\nare in the viewer panel")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                    Spacer()
+                }
             }
         }
     }
@@ -213,6 +226,8 @@ struct ContentView: View {
                     SchematicView(bridge: schBridge, selectedComponent: $selectedComponent)
                 case .pcb:
                     PCBView(bridge: pcbBridge, activeLayerId: $activeLayerId)
+                case .viewer3d:
+                    PCB3DView(bridge: pcbBridge)
                 }
             }
             .frame(minHeight: 300)
@@ -230,7 +245,7 @@ struct ContentView: View {
         switch activeTab {
         case .schematic:
             ViolationsView(kind: .erc(schBridge))
-        case .pcb:
+        case .pcb, .viewer3d:
             ViolationsView(kind: .drc(pcbBridge))
         }
     }
@@ -254,7 +269,7 @@ struct ContentView: View {
                 case .schematic:
                     schBridge.close()
                     selectedComponent = nil
-                case .pcb:
+                case .pcb, .viewer3d:
                     pcbBridge.closePCB()
                     selectedFootprint = nil
                     activeLayerId = nil
@@ -264,6 +279,17 @@ struct ContentView: View {
             }
             .help("Close current file")
             .disabled(activeTab == .schematic ? !schBridge.isLoaded : !pcbBridge.isLoaded)
+        }
+
+        ToolbarItem {
+            if activeTab == .pcb && pcbBridge.isLoaded {
+                Button {
+                    activeTab = .viewer3d
+                } label: {
+                    Label("3D View", systemImage: "view.3d")
+                }
+                .help("Switch to 3D viewer")
+            }
         }
 
         ToolbarItem {
@@ -289,8 +315,8 @@ struct ContentView: View {
 
     private var currentError: String? {
         switch activeTab {
-        case .schematic: return schBridge.errorMessage
-        case .pcb:       return pcbBridge.errorMessage
+        case .schematic:        return schBridge.errorMessage
+        case .pcb, .viewer3d:  return pcbBridge.errorMessage
         }
     }
 

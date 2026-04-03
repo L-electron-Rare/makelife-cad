@@ -217,4 +217,5 @@ struct KicadPcb {
     char*        footprints_json;
     char*        layer_svg[PCB_MAX_LAYERS];
     char*        drc_cache;
+    char*        json_3d;      /* 3D export JSON (Phase 6) */
 };

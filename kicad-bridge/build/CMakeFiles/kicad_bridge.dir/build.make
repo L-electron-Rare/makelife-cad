@@ -142,13 +142,28 @@ CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.s"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_pcb_edit.c" -o CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.s
 
+CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o: CMakeFiles/kicad_bridge.dir/flags.make
+CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o: /Users/electron/Documents/Projets/Factory\ 4\ Life/makelife-cad/kicad-bridge/src/bridge_3d.c
+CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o: CMakeFiles/kicad_bridge.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Building C object CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o -MF CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o.d -o CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o -c "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_3d.c"
+
+CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_3d.c" > CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.i
+
+CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_3d.c" -o CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.s
+
 # Object files for target kicad_bridge
 kicad_bridge_OBJECTS = \
 "CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o" \
 "CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o" \
 "CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o" \
 "CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o" \
-"CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o"
+"CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o" \
+"CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o"
 
 # External object files for target kicad_bridge
 kicad_bridge_EXTERNAL_OBJECTS =
@@ -158,9 +173,10 @@ libkicad_bridge.a: CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o
 libkicad_bridge.a: CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o
 libkicad_bridge.a: CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o
 libkicad_bridge.a: CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o
+libkicad_bridge.a: CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o
 libkicad_bridge.a: CMakeFiles/kicad_bridge.dir/build.make
 libkicad_bridge.a: CMakeFiles/kicad_bridge.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Linking C static library libkicad_bridge.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_7) "Linking C static library libkicad_bridge.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/kicad_bridge.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/kicad_bridge.dir/link.txt --verbose=$(VERBOSE)
 

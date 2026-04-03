@@ -170,6 +170,13 @@ int kicad_pcb_save(kicad_pcb_handle h, const char* path);
  * Returns 0 on success, -1 on error. */
 int kicad_pcb_import_netlist(kicad_pcb_handle h, const char* netlist_json);
 
+/* Return JSON describing the PCB in 3D-ready form.
+ * Schema: { "board": { "width_mm", "height_mm", "thickness_mm", "outline" },
+ *           "layers": [...], "components": [...] }
+ * Returned pointer is owned by the handle — valid until kicad_pcb_close().
+ * Returns NULL on error. */
+const char* kicad_pcb_export_3d_json(kicad_pcb_handle h);
+
 /* ------------------------------------------------------------------ */
 /* DRC / ERC API                                                        */
 /* ------------------------------------------------------------------ */

@@ -10,6 +10,7 @@ add_library(kicad_bridge STATIC
     src/bridge_pcb.c
     src/bridge_drc.c
     src/bridge_pcb_edit.c
+    src/bridge_3d.c
 )
 
 target_include_directories(kicad_bridge PUBLIC

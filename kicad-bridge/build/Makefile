@@ -129,6 +129,30 @@ kicad_bridge/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/build
 .PHONY : kicad_bridge/fast
 
+src/bridge_3d.o: src/bridge_3d.c.o
+.PHONY : src/bridge_3d.o
+
+# target to build an object file
+src/bridge_3d.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o
+.PHONY : src/bridge_3d.c.o
+
+src/bridge_3d.i: src/bridge_3d.c.i
+.PHONY : src/bridge_3d.i
+
+# target to preprocess a source file
+src/bridge_3d.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.i
+.PHONY : src/bridge_3d.c.i
+
+src/bridge_3d.s: src/bridge_3d.c.s
+.PHONY : src/bridge_3d.s
+
+# target to generate assembly for a file
+src/bridge_3d.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.s
+.PHONY : src/bridge_3d.c.s
+
 src/bridge_drc.o: src/bridge_drc.c.o
 .PHONY : src/bridge_drc.o
 
@@ -258,6 +282,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... kicad_bridge"
+	@echo "... src/bridge_3d.o"
+	@echo "... src/bridge_3d.i"
+	@echo "... src/bridge_3d.s"
 	@echo "... src/bridge_drc.o"
 	@echo "... src/bridge_drc.i"
 	@echo "... src/bridge_drc.s"

@@ -1,2 +1,2 @@
-/usr/bin/ar qc libkicad_bridge.a CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o
+/usr/bin/ar qc libkicad_bridge.a CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o
 /usr/bin/ranlib libkicad_bridge.a

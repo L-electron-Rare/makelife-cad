@@ -319,12 +319,14 @@ enum KiCadBridgeError: Error, LocalizedError {
     case fileNotFound(String)
     case parseError(String)
     case renderError
+    case noPCBLoaded
 
     var errorDescription: String? {
         switch self {
         case .fileNotFound(let p): return "File not found: \(p)"
         case .parseError(let p):   return "Parse error: \(p)"
         case .renderError:         return "SVG render failed"
+        case .noPCBLoaded:         return "No PCB file is loaded"
         }
     }
 }
@@ -623,5 +625,141 @@ final class KiCadBridge: ObservableObject {
             throw KiCadBridgeError.renderError
         }
         svgContent = String(cString: svgPtr)
+    }
+}
+
+// MARK: - 3D Data models
+
+struct Board3D {
+    let widthMM:     Double
+    let heightMM:    Double
+    let thicknessMM: Double
+    let outline:     [(x: Double, y: Double)]
+}
+
+struct Layer3D: Identifiable {
+    let id:    Int
+    let name:  String
+    let zMM:   Double
+    let color: String   // hex "#rrggbb"
+    var visible: Bool = true
+}
+
+enum ComponentType3D: String {
+    case ic        = "ic"
+    case passive   = "passive"
+    case connector = "connector"
+    case other     = "other"
+}
+
+struct Component3D: Identifiable {
+    let id:        UUID
+    let reference: String
+    let value:     String
+    let xMM:       Double
+    let yMM:       Double
+    let angleDeg:  Double
+    let layer:     String
+    let bboxW:     Double
+    let bboxH:     Double
+    let heightMM:  Double
+    let type:      ComponentType3D
+
+    // Computed: is component on back of board?
+    var isBack: Bool { layer == "B.Cu" }
+}
+
+struct PCB3DScene {
+    let board:      Board3D
+    var layers:     [Layer3D]
+    let components: [Component3D]
+}
+
+// MARK: - 3D JSON decoding (private)
+
+private struct Board3DJSON: Decodable {
+    let width_mm: Double
+    let height_mm: Double
+    let thickness_mm: Double
+    let outline: [[Double]]
+}
+
+private struct Layer3DJSON: Decodable {
+    let id: Int
+    let name: String
+    let z_mm: Double
+    let color: String
+}
+
+private struct Component3DJSON: Decodable {
+    let reference: String
+    let value: String
+    let x_mm: Double
+    let y_mm: Double
+    let angle_deg: Double
+    let layer: String
+    let bbox_w: Double
+    let bbox_h: Double
+    let height_mm: Double
+    let type: String
+}
+
+private struct PCB3DJSON: Decodable {
+    let board: Board3DJSON
+    let layers: [Layer3DJSON]
+    let components: [Component3DJSON]
+}
+
+// MARK: - KiCadPCBBridge 3D extension
+
+extension KiCadPCBBridge {
+
+    /// Export PCB as a 3D scene model.
+    /// Calls kicad_pcb_export_3d_json() and decodes the result.
+    func export3D() throws -> PCB3DScene {
+        guard let h = handle else {
+            throw KiCadBridgeError.noPCBLoaded
+        }
+        guard let cStr = kicad_pcb_export_3d_json(h),
+              let json = String(cString: cStr, encoding: .utf8),
+              let data = json.data(using: .utf8) else {
+            throw KiCadBridgeError.parseError("3d_json")
+        }
+
+        let raw = try JSONDecoder().decode(PCB3DJSON.self, from: data)
+
+        let outline = raw.board.outline.compactMap { pt -> (x: Double, y: Double)? in
+            guard pt.count >= 2 else { return nil }
+            return (x: pt[0], y: pt[1])
+        }
+
+        let board = Board3D(
+            widthMM:     raw.board.width_mm,
+            heightMM:    raw.board.height_mm,
+            thicknessMM: raw.board.thickness_mm,
+            outline:     outline
+        )
+
+        let layers = raw.layers.map { l in
+            Layer3D(id: l.id, name: l.name, zMM: l.z_mm, color: l.color)
+        }
+
+        let components = raw.components.map { c in
+            Component3D(
+                id:        UUID(),
+                reference: c.reference,
+                value:     c.value,
+                xMM:       c.x_mm,
+                yMM:       c.y_mm,
+                angleDeg:  c.angle_deg,
+                layer:     c.layer,
+                bboxW:     c.bbox_w,
+                bboxH:     c.bbox_h,
+                heightMM:  c.height_mm,
+                type:      ComponentType3D(rawValue: c.type) ?? .other
+            )
+        }
+
+        return PCB3DScene(board: board, layers: layers, components: components)
     }
 }

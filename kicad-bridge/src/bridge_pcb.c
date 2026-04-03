@@ -896,6 +896,7 @@ int kicad_pcb_close(kicad_pcb_handle h)
     for (int i = 0; i < PCB_MAX_LAYERS; i++)
         free(pcb->layer_svg[i]);
     free(pcb->drc_cache);
+    free(pcb->json_3d);
     free(pcb);
     return 0;
 }

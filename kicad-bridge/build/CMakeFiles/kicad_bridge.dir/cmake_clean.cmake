@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o"
+  "CMakeFiles/kicad_bridge.dir/src/bridge_3d.c.o.d"
   "CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o"
   "CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o.d"
   "CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o"
