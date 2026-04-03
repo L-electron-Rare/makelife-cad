@@ -1,5 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.venv/
+.env
+
+# Node
 node_modules/
+.next/
 dist/
 dist-electron/
 .vite/
 *.tsbuildinfo
+
+# Build artifacts
+kicad-bridge/build/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Test / CI
+.pytest_cache/
+.ci_artifacts/
+htmlcov/
+.coverage

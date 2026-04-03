@@ -364,6 +364,22 @@ async def export_svg(project_path: str = "hardware/makelife-main/makelife-main.k
 # --- AI-assisted endpoints ---
 
 CAD_PROJECTS_DIR = Path(os.getenv("CAD_PROJECTS_DIR", "/projects"))
+
+
+def _safe_resolve(user_path: str) -> Path | None:
+    """Resolve a user-provided path, ensuring it stays under CAD_PROJECTS_DIR or cwd."""
+    candidate = CAD_PROJECTS_DIR / user_path
+    if not candidate.exists():
+        candidate = Path(user_path)
+    try:
+        resolved = candidate.resolve(strict=True)
+    except (OSError, ValueError):
+        return None
+    # Allow paths under CAD_PROJECTS_DIR or under the project root
+    allowed_roots = [CAD_PROJECTS_DIR.resolve(), PROJECT_ROOT]
+    if not any(str(resolved).startswith(str(root)) for root in allowed_roots):
+        return None
+    return resolved
 AI_COMPONENT_MODEL = os.getenv("AI_COMPONENT_MODEL", "openai/qwen-14b-awq")
 AI_REVIEW_MODEL = os.getenv("AI_REVIEW_MODEL", "openai/mascarade-kicad")
 AI_REVIEW_FALLBACK = os.getenv("AI_REVIEW_FALLBACK_MODEL", "openai/qwen-14b-awq")
@@ -395,10 +411,8 @@ async def component_suggest(request: ComponentSuggestRequest):
     project_ctx = None
     if request.project_context:
         try:
-            ctx_path = CAD_PROJECTS_DIR / request.project_context
-            if not ctx_path.exists():
-                ctx_path = Path(request.project_context)
-            if ctx_path.exists():
+            ctx_path = _safe_resolve(request.project_context)
+            if ctx_path is not None:
                 project_ctx = parse_schematic(ctx_path.read_text())
         except Exception as e:
             logger.warning("Failed to parse project context: %s", e)
@@ -468,10 +482,8 @@ async def schematic_review(raw_request: Request):
             except (json_module.JSONDecodeError, TypeError):
                 pass
         if review_request and review_request.project_path:
-            sch_path = CAD_PROJECTS_DIR / review_request.project_path
-            if not sch_path.exists():
-                sch_path = Path(review_request.project_path)
-            if sch_path.exists():
+            sch_path = _safe_resolve(review_request.project_path)
+            if sch_path is not None:
                 content = sch_path.read_text()
 
     if not content:

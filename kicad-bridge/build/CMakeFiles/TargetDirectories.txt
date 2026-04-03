@@ -1,3 +1,0 @@
-/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/build/CMakeFiles/kicad_bridge.dir
-/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/build/CMakeFiles/edit_cache.dir
-/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/build/CMakeFiles/rebuild_cache.dir

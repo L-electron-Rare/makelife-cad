@@ -144,39 +144,6 @@ def test_yiacad_relay_endpoint():
     assert response.json()["path"] == "/components/search"
 
 
-<<<<<<< HEAD
-def test_yiacad_ai_status_endpoint():
-    with patch("gateway.app.yiacad_relay") as mock_relay:
-        mock_relay.return_value = {
-            "method": "GET",
-            "path": "/ai/status",
-            "gateway_url": "http://127.0.0.1:8100",
-            "payload": {},
-            "response": {"status": "ok"},
-        }
-        response = client.get("/yiacad/ai/status")
-
-    assert response.status_code == 200
-    assert response.json()["path"] == "/ai/status"
-
-
-def test_yiacad_components_search_endpoint():
-    with patch("gateway.app.yiacad_relay") as mock_relay:
-        mock_relay.return_value = {
-            "method": "POST",
-            "path": "/components/search",
-            "gateway_url": "http://127.0.0.1:8100",
-            "payload": {"query": "stm32"},
-            "response": {"results": []},
-        }
-        response = client.post("/yiacad/components/search", json={"query": "stm32"})
-
-    assert response.status_code == 200
-    assert response.json()["path"] == "/components/search"
-
-
-=======
->>>>>>> 09f3026 (chore: workspace updates)
 def test_yiacad_status_with_env_override_unavailable(monkeypatch, tmp_path):
     custom_path = tmp_path / "missing_yiacad"
     monkeypatch.setenv("YIACAD_DIR", str(custom_path))
