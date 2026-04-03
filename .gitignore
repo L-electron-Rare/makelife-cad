@@ -1,30 +1,101 @@
+# OS & System
+.DS_Store
+.AppleDouble
+.LSOverride
+thumbsdb
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+.emacs.d/
+.cursor*
+.windsurf*
+.clinerules*
+
 # Python
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+ENV/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytest_cache/
+.coverage
+htmlcov/
 *.egg-info/
 *.egg
-.venv/
-.env
+.eggs/
 
-# Node
+# Node / JavaScript
 node_modules/
-.next/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.node_modules/
+*.tsbuildinfo
+
+# Package managers
+yarn.lock
+pnpm-lock.yaml
+package-lock.json
+
+# Build & Cache
 dist/
 dist-electron/
 .vite/
-*.tsbuildinfo
+.turbo/
+.next/
+out/
+build/
+coverage/
+.cache/
 
-# Build artifacts
+# kicad-bridge build output
 kicad-bridge/build/
 
-# IDE / OS
-.DS_Store
-.idea/
-.vscode/
-*.swp
+# Environment
+.env
+.env.prod
+.env.local
+.env.*.local
 
-# Test / CI
-.pytest_cache/
+# IDE generated
+.vscode/settings.json
+.cursor/
+.vscode/extensions/
+
+# Custom agent/memory
+.claude/
+.remember/
+.superpowers/
+.memories/
+
+# Logs
+logs/
+*.log
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# CAD vendor forks and local integrations
+vendor/
+
+# Xcode user data (not project files — those are committed)
+*.xcuserstate
+*.xcuserdata/
+DerivedData/
+
+# CI artifacts
 .ci_artifacts/
-htmlcov/
-.coverage

@@ -380,6 +380,8 @@ def _safe_resolve(user_path: str) -> Path | None:
     if not any(str(resolved).startswith(str(root)) for root in allowed_roots):
         return None
     return resolved
+
+
 AI_COMPONENT_MODEL = os.getenv("AI_COMPONENT_MODEL", "openai/qwen-14b-awq")
 AI_REVIEW_MODEL = os.getenv("AI_REVIEW_MODEL", "openai/mascarade-kicad")
 AI_REVIEW_FALLBACK = os.getenv("AI_REVIEW_FALLBACK_MODEL", "openai/qwen-14b-awq")
