@@ -113,7 +113,7 @@ struct LayerPanel: View {
             .padding(.vertical, 4)
 
             ForEach(filteredFootprints) { fp in
-                FootprintRow(footprint: fp,
+                PCBFootprintRow(footprint: fp,
                              isSelected: selectedFootprint?.id == fp.id)
                     .contentShape(Rectangle())
                     .onTapGesture { selectedFootprint = fp }
@@ -182,9 +182,9 @@ private struct LayerRow: View {
     }
 }
 
-// MARK: - FootprintRow
+// MARK: - PCBFootprintRow
 
-private struct FootprintRow: View {
+private struct PCBFootprintRow: View {
     let footprint: PCBFootprint
     let isSelected: Bool
 

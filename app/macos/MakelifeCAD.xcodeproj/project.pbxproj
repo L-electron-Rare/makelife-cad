@@ -1,1 +1,383 @@
-// Placeholder xcodeproj - initialise ton vrai projet via Xcode
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		073EA5E07ACD18AF8108718F /* SchematicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FAB4E02DD3803D2DBA60AED /* SchematicView.swift */; };
+		1871BF49E7565BA3255758E7 /* LayerStack3DPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4735D055045630CC26A450 /* LayerStack3DPanel.swift */; };
+		1E398B1F534A1C1627BB3D18 /* ViolationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5025C1A85B2BA0AD6FDEC3AD /* ViolationsView.swift */; };
+		23E8C4FD9AB46256E1095B7E /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864E8C963ED8B73DEF760D97 /* App.swift */; };
+		24D563A90A183ACF4A88F9A5 /* LayerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1316B6CB3E6A3743D2745913 /* LayerPanel.swift */; };
+		2C7EB02260C8ED08F8DEE596 /* FootprintPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F0FB87125D1EB06547FCB4 /* FootprintPalette.swift */; };
+		415B7F58827DDEE15B204456 /* SymbolPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A91144B32A44D5063026D24 /* SymbolPalette.swift */; };
+		44ACB95956E821CA00F01836 /* PCBEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C13E84F69DE55282D94835 /* PCBEditorView.swift */; };
+		6CD36E78EFAC5729855F6799 /* PCBInspectorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5710CA2BA087FFCF79DC3AEA /* PCBInspectorPanel.swift */; };
+		79D12883DD23B0DACBA9BEED /* PropertyEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52A9F1A669F8B5904FC7C15 /* PropertyEditor.swift */; };
+		95186AE92ED0C5FE3A328087 /* KiCadBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156296D04E695F91BAF0C165 /* KiCadBridge.swift */; };
+		9BB96ADC975F890A27751BEB /* PCBView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2286D86D2E0389FA81DD974 /* PCBView.swift */; };
+		B47124CC18022FAC9AEAB809 /* SchematicEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E62F574D0D8DBFB55A05E7DC /* SchematicEditorView.swift */; };
+		DF25F3179905255206EF53BB /* ComponentList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38F174EA3FBA848FFF9B414 /* ComponentList.swift */; };
+		E52A68DF808072E7C01420B0 /* PCB3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701170D39C2F6BF223BA7FA7 /* PCB3DView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1316B6CB3E6A3743D2745913 /* LayerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerPanel.swift; sourceTree = "<group>"; };
+		156296D04E695F91BAF0C165 /* KiCadBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KiCadBridge.swift; sourceTree = "<group>"; };
+		2FAB4E02DD3803D2DBA60AED /* SchematicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchematicView.swift; sourceTree = "<group>"; };
+		35C69BEED1E065868427E49A /* MakelifeCAD-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MakelifeCAD-Bridging-Header.h"; sourceTree = "<group>"; };
+		3A4735D055045630CC26A450 /* LayerStack3DPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerStack3DPanel.swift; sourceTree = "<group>"; };
+		47C13E84F69DE55282D94835 /* PCBEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCBEditorView.swift; sourceTree = "<group>"; };
+		5025C1A85B2BA0AD6FDEC3AD /* ViolationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViolationsView.swift; sourceTree = "<group>"; };
+		5710CA2BA087FFCF79DC3AEA /* PCBInspectorPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCBInspectorPanel.swift; sourceTree = "<group>"; };
+		5B7073148ECB777D354CAE09 /* MakelifeCAD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakelifeCAD.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		701170D39C2F6BF223BA7FA7 /* PCB3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCB3DView.swift; sourceTree = "<group>"; };
+		864E8C963ED8B73DEF760D97 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		94F0FB87125D1EB06547FCB4 /* FootprintPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FootprintPalette.swift; sourceTree = "<group>"; };
+		9A91144B32A44D5063026D24 /* SymbolPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolPalette.swift; sourceTree = "<group>"; };
+		A2286D86D2E0389FA81DD974 /* PCBView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCBView.swift; sourceTree = "<group>"; };
+		B52A9F1A669F8B5904FC7C15 /* PropertyEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyEditor.swift; sourceTree = "<group>"; };
+		E38F174EA3FBA848FFF9B414 /* ComponentList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentList.swift; sourceTree = "<group>"; };
+		E62F574D0D8DBFB55A05E7DC /* SchematicEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchematicEditorView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		6C0C3B43241A12D3892E33A4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5B7073148ECB777D354CAE09 /* MakelifeCAD.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		86861DEF6336EBA4B5E73E77 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				E38F174EA3FBA848FFF9B414 /* ComponentList.swift */,
+				94F0FB87125D1EB06547FCB4 /* FootprintPalette.swift */,
+				1316B6CB3E6A3743D2745913 /* LayerPanel.swift */,
+				3A4735D055045630CC26A450 /* LayerStack3DPanel.swift */,
+				701170D39C2F6BF223BA7FA7 /* PCB3DView.swift */,
+				47C13E84F69DE55282D94835 /* PCBEditorView.swift */,
+				5710CA2BA087FFCF79DC3AEA /* PCBInspectorPanel.swift */,
+				A2286D86D2E0389FA81DD974 /* PCBView.swift */,
+				B52A9F1A669F8B5904FC7C15 /* PropertyEditor.swift */,
+				E62F574D0D8DBFB55A05E7DC /* SchematicEditorView.swift */,
+				2FAB4E02DD3803D2DBA60AED /* SchematicView.swift */,
+				9A91144B32A44D5063026D24 /* SymbolPalette.swift */,
+				5025C1A85B2BA0AD6FDEC3AD /* ViolationsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		BBD2036CCAE056666F550560 /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				156296D04E695F91BAF0C165 /* KiCadBridge.swift */,
+				35C69BEED1E065868427E49A /* MakelifeCAD-Bridging-Header.h */,
+			);
+			path = Bridge;
+			sourceTree = "<group>";
+		};
+		EE0253740A1B189AFE13F140 = {
+			isa = PBXGroup;
+			children = (
+				F57E416DD5A7E053A698AD37 /* MakelifeCAD */,
+				6C0C3B43241A12D3892E33A4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F57E416DD5A7E053A698AD37 /* MakelifeCAD */ = {
+			isa = PBXGroup;
+			children = (
+				864E8C963ED8B73DEF760D97 /* App.swift */,
+				BBD2036CCAE056666F550560 /* Bridge */,
+				86861DEF6336EBA4B5E73E77 /* Views */,
+			);
+			path = MakelifeCAD;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8934819E38EFEE2B838428F3 /* MakelifeCAD */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1CC4738ABCFEB2C5A6642BE /* Build configuration list for PBXNativeTarget "MakelifeCAD" */;
+			buildPhases = (
+				504C48FF9082F216BF9910F2 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MakelifeCAD;
+			packageProductDependencies = (
+			);
+			productName = MakelifeCAD;
+			productReference = 5B7073148ECB777D354CAE09 /* MakelifeCAD.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		32921DFE3A34ED2F20DF9B4C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					8934819E38EFEE2B838428F3 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = B1D11ED2076BE3AFF316631D /* Build configuration list for PBXProject "MakelifeCAD" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = EE0253740A1B189AFE13F140;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 6C0C3B43241A12D3892E33A4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8934819E38EFEE2B838428F3 /* MakelifeCAD */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		504C48FF9082F216BF9910F2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				23E8C4FD9AB46256E1095B7E /* App.swift in Sources */,
+				DF25F3179905255206EF53BB /* ComponentList.swift in Sources */,
+				2C7EB02260C8ED08F8DEE596 /* FootprintPalette.swift in Sources */,
+				95186AE92ED0C5FE3A328087 /* KiCadBridge.swift in Sources */,
+				24D563A90A183ACF4A88F9A5 /* LayerPanel.swift in Sources */,
+				1871BF49E7565BA3255758E7 /* LayerStack3DPanel.swift in Sources */,
+				E52A68DF808072E7C01420B0 /* PCB3DView.swift in Sources */,
+				44ACB95956E821CA00F01836 /* PCBEditorView.swift in Sources */,
+				6CD36E78EFAC5729855F6799 /* PCBInspectorPanel.swift in Sources */,
+				9BB96ADC975F890A27751BEB /* PCBView.swift in Sources */,
+				79D12883DD23B0DACBA9BEED /* PropertyEditor.swift in Sources */,
+				B47124CC18022FAC9AEAB809 /* SchematicEditorView.swift in Sources */,
+				073EA5E07ACD18AF8108718F /* SchematicView.swift in Sources */,
+				415B7F58827DDEE15B204456 /* SymbolPalette.swift in Sources */,
+				1E398B1F534A1C1627BB3D18 /* ViolationsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		5E51BBBA8EFDEA52FE77BDA7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
+				PRODUCT_NAME = MakelifeCAD;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		79B63A6435DBADFEAED4FD96 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LINKER_FLAGS = (
+					"-lkicad_bridge",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_BRIDGING_HEADER = "MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Debug;
+		};
+		8D2CEFC54D098CB22CA6E610 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../kicad-bridge/build",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_LINKER_FLAGS = (
+					"-lkicad_bridge",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_BRIDGING_HEADER = "MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Release;
+		};
+		F93B08254235549CCE335551 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
+				PRODUCT_NAME = MakelifeCAD;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B1CC4738ABCFEB2C5A6642BE /* Build configuration list for PBXNativeTarget "MakelifeCAD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E51BBBA8EFDEA52FE77BDA7 /* Debug */,
+				F93B08254235549CCE335551 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B1D11ED2076BE3AFF316631D /* Build configuration list for PBXProject "MakelifeCAD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				79B63A6435DBADFEAED4FD96 /* Debug */,
+				8D2CEFC54D098CB22CA6E610 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 32921DFE3A34ED2F20DF9B4C /* Project object */;
+}
