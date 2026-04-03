@@ -2,12 +2,14 @@ import { cn } from '@/lib/utils'
 import { useUIStore } from '@/stores/ui'
 import {
   LayoutDashboard, FolderTree, GitBranch, Play, Bot,
-  Cpu, Settings, ChevronLeft
+  Cpu, Settings, ChevronLeft, Cuboid
 } from 'lucide-react'
+import { useProjectStore } from '@/stores/project'
 
 const NAV_ITEMS = [
   { id: 'dashboard' as const, icon: LayoutDashboard, label: 'Dashboard' },
   { id: 'explorer' as const, icon: FolderTree, label: 'Explorer' },
+  { id: 'freecad' as const, icon: Cuboid, label: 'FreeCAD' },
   { id: 'git' as const, icon: GitBranch, label: 'Git' },
   { id: 'ci' as const, icon: Play, label: 'CI/CD' },
   { id: 'ai' as const, icon: Bot, label: 'AI' },
@@ -17,6 +19,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const { activePage, setActivePage, sidebarCollapsed, toggleSidebar } = useUIStore()
+  const toolPaths = useProjectStore((s) => s.toolPaths)
 
   return (
     <aside className={cn(
@@ -36,7 +39,20 @@ export function Sidebar() {
             )}
           >
             <Icon size={18} />
-            {!sidebarCollapsed && <span>{label}</span>}
+            {!sidebarCollapsed && (
+              <>
+                <span>{label}</span>
+                {id === 'freecad' && (
+                  <span
+                    className={cn(
+                      'ml-auto h-2 w-2 rounded-full',
+                      toolPaths?.freecadCmd ? 'bg-emerald-400' : 'bg-rose-400'
+                    )}
+                    title={toolPaths?.freecadCmd ? 'FreeCAD CLI available' : 'FreeCAD CLI missing'}
+                  />
+                )}
+              </>
+            )}
           </button>
         ))}
       </nav>

@@ -46,7 +46,7 @@ struct PropertyEditor: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear { syncFields() }
-        .onChange(of: item.id) { _ in syncFields() }
+        .onChange(of: item.id) { _, _ in syncFields() }
     }
 
     // MARK: - Symbol fields

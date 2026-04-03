@@ -136,7 +136,9 @@ struct KicadSch {
 #define PCB_MAX_PADS        64
 #define PCB_MAX_POLY_PTS    256
 #define PCB_MAX_LAYERS      64
+#ifndef PCB_MAX_PROP_LEN
 #define PCB_MAX_PROP_LEN    KICAD_MAX_PROP_LEN   /* same value (256) */
+#endif
 #define PCB_JSON_BUF_SIZE   (1 << 20)
 #define PCB_SVG_BUF_SIZE    (8 << 20)
 

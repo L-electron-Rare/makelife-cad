@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type Page = 'dashboard' | 'explorer' | 'git' | 'ci' | 'ai' | 'firmware' | 'settings'
+type Page = 'dashboard' | 'explorer' | 'freecad' | 'git' | 'ci' | 'ai' | 'firmware' | 'settings'
 
 interface UIState {
   activePage: Page

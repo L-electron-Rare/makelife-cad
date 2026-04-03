@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
+import { loadAppSettings } from '../utils/app-settings'
 
 const LIFE_CORE_URL = process.env.LIFE_CORE_URL ?? 'http://localhost:8000'
-const MAKELIFE_CAD_URL = process.env.MAKELIFE_CAD_URL ?? 'http://localhost:8001'
 const DEFAULT_AI_MODEL = process.env.DEFAULT_AI_MODEL ?? 'openai/qwen-14b-awq'
 
 export interface Message {
@@ -35,6 +35,11 @@ export interface SuggestResponse {
   components: SuggestedComponent[]
 }
 
+async function cadGatewayUrl(): Promise<string> {
+  const settings = await loadAppSettings()
+  return settings.gatewayUrl
+}
+
 export async function chat(messages: Message[], model?: string): Promise<ChatResponse> {
   const response = await fetch(`${LIFE_CORE_URL}/chat`, {
     method: 'POST',
@@ -51,13 +56,14 @@ export async function reviewSchematic(
   filePath: string,
   focus?: string[]
 ): Promise<ReviewResponse> {
-  const response = await fetch(`${MAKELIFE_CAD_URL}/ai/schematic-review`, {
+  const gatewayUrl = await cadGatewayUrl()
+  const response = await fetch(`${gatewayUrl}/ai/schematic-review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ file_path: filePath, focus }),
   })
   if (!response.ok) {
-    throw new Error(`makelife-cad /ai/schematic-review error: ${response.status} ${await response.text()}`)
+    throw new Error(`makelife-cad /ai/schematic-review error from ${gatewayUrl}: ${response.status} ${await response.text()}`)
   }
   return response.json() as Promise<ReviewResponse>
 }
@@ -66,13 +72,14 @@ export async function suggestComponent(
   description: string,
   constraints?: Record<string, string>
 ): Promise<SuggestResponse> {
-  const response = await fetch(`${MAKELIFE_CAD_URL}/ai/component-suggest`, {
+  const gatewayUrl = await cadGatewayUrl()
+  const response = await fetch(`${gatewayUrl}/ai/component-suggest`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ description, constraints }),
   })
   if (!response.ok) {
-    throw new Error(`makelife-cad /ai/component-suggest error: ${response.status} ${await response.text()}`)
+    throw new Error(`makelife-cad /ai/component-suggest error from ${gatewayUrl}: ${response.status} ${await response.text()}`)
   }
   return response.json() as Promise<SuggestResponse>
 }

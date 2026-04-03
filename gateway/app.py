@@ -5,18 +5,21 @@ from __future__ import annotations
 import json as json_module
 import logging
 import os
-import shutil
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from gateway.freecad_runner import (
+    detect_runtime_status as freecad_runtime_status,
+    export_model as freecad_export_model,
+    FreecadExportError,
+)
 from gateway.llm_client import chat as llm_chat, LLMClientError
 from gateway.kicad_parser import parse_schematic, SchematicContext
 from gateway.prompts import build_component_prompt, build_review_prompt
-from gateway.freecad_runner import export_model as freecad_export_model
 from gateway.yiacad_client import (
     YiacadClientError,
     execute_action as yiacad_execute_action,
@@ -28,7 +31,6 @@ logger = logging.getLogger("makelife_cad.gateway")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_YIACAD_DIR = PROJECT_ROOT / "vendor" / "yiacad"
-DEFAULT_FREECAD_CMD = os.getenv("FREECAD_CMD", "freecadcmd")
 
 
 def init_telemetry(app_instance):
@@ -82,7 +84,7 @@ TOOLS = {
     "freecad": {
         "name": "FreeCAD",
         "description": "3D parametric CAD modeling",
-        "version": "1.0",
+        "version": "1.1.0",
         "capabilities": ["3d_model", "mesh", "step_export", "stl_export"],
         "status": "available",
     },
@@ -130,20 +132,16 @@ def yiacad_status() -> dict[str, Any]:
 
 def freecad_status() -> dict[str, Any]:
     """Detect FreeCAD CLI availability for runtime tool registry."""
-    cmd = DEFAULT_FREECAD_CMD
-    exists = shutil.which(cmd) is not None
-    return {
-        "status": "available" if exists else "unavailable",
-        "configured_cmd": cmd,
-        "hint": "Install FreeCAD CLI (freecadcmd) or set FREECAD_CMD",
-    }
+    status = freecad_runtime_status()
+    status["hint"] = "Install FreeCAD 1.1.x locally or set FREECAD_CMD"
+    return status
 
 
 def tools_snapshot() -> dict[str, dict[str, Any]]:
     """Return tool registry with runtime-updated values."""
     snapshot = {key: value.copy() for key, value in TOOLS.items()}
-    snapshot["yiacad"]["status"] = yiacad_status()["status"]
-    snapshot["freecad"]["status"] = freecad_status()["status"]
+    snapshot["yiacad"].update(yiacad_status())
+    snapshot["freecad"].update(freecad_status())
     return snapshot
 
 
@@ -491,6 +489,18 @@ class FreecadExportResponse(BaseModel):
     returncode: int | None = None
     stdout: str | None = None
     stderr: str | None = None
+    version_used: str | None = None
+    source: str | None = None
+
+
+class FreecadStatusResponse(BaseModel):
+    status: str
+    installed: bool
+    version: str | None = None
+    compatible: bool
+    path: str | None = None
+    source: str
+    preferred_export_mode: str
 
 
 @app.post("/ai/schematic-review", response_model=SchematicReviewResponse)
@@ -553,6 +563,12 @@ async def schematic_review(raw_request: Request):
     )
 
 
+@app.get("/freecad/status", response_model=FreecadStatusResponse)
+async def get_freecad_status():
+    """Return FreeCAD runtime compatibility for local desktop clients."""
+    return FreecadStatusResponse(**freecad_status())
+
+
 @app.post("/freecad/export", response_model=FreecadExportResponse)
 async def freecad_export(request: FreecadExportRequest):
     """Export a FreeCAD project to STEP or STL via FreeCAD CLI."""
@@ -574,6 +590,8 @@ async def freecad_export(request: FreecadExportRequest):
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except FreecadExportError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"FreeCAD export failed: {e}")
 

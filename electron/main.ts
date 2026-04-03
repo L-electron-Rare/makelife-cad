@@ -1,11 +1,17 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import path from 'path'
 import { readdir, readFile, writeFile, mkdir } from 'fs/promises'
 import { detectTools } from './utils/detect-tools'
 import * as kicadBridge from './bridges/kicad'
 import * as mascaradeBridge from './bridges/mascarade'
-import { launchFreecad } from './bridges/freecad'
+import {
+  launchFreecad,
+  exportModel as exportFreecadModel,
+  getFreecadStatus,
+} from './bridges/freecad'
 import { processManager } from './utils/process-manager'
+import { loadAppSettings, saveAppSettings } from './utils/app-settings'
+import { getSavedGatewayStatus } from './utils/gateway-status'
 import { startWatching, stopWatching } from './bridges/file-watcher'
 import * as gitBridge from './bridges/git'
 import * as githubBridge from './bridges/github'
@@ -17,6 +23,7 @@ let mainWindow: BrowserWindow | null = null
 
 // Tool detection
 ipcMain.handle('tools:detect', () => detectTools())
+ipcMain.handle('tools:freecadStatus', async () => getFreecadStatus(await loadAppSettings()))
 
 // File system
 ipcMain.handle('fs:readDir', async (_, dirPath: string) => {
@@ -32,6 +39,14 @@ ipcMain.handle('dialog:openDir', async () => {
   const result = await dialog.showOpenDialog(mainWindow!, { properties: ['openDirectory'] })
   return result.canceled ? null : result.filePaths[0]
 })
+ipcMain.handle('shell:revealInFinder', async (_, filePath: string) => {
+  shell.showItemInFolder(filePath)
+})
+
+// App settings
+ipcMain.handle('settings:get', async () => loadAppSettings())
+ipcMain.handle('settings:update', async (_, patch: { gatewayUrl?: string }) => saveAppSettings(patch))
+ipcMain.handle('settings:getGatewayStatus', async () => getSavedGatewayStatus())
 
 // Project config
 ipcMain.handle('project:getConfig', async (_, projectPath: string) => {
@@ -44,6 +59,10 @@ ipcMain.handle('project:getConfig', async (_, projectPath: string) => {
 // Tool launchers
 ipcMain.handle('tools:launchKicad', async (_, filePath: string) => kicadBridge.launchKicad(filePath))
 ipcMain.handle('tools:launchFreecad', async (_, filePath: string) => launchFreecad(filePath))
+ipcMain.handle('tools:freecadExport', async (_, inputPath: string, format: 'step' | 'stl', outputDir?: string) => {
+  const settings = await loadAppSettings()
+  return exportFreecadModel({ inputPath, format, outputDir, gatewayUrl: settings.gatewayUrl })
+})
 
 // File watcher
 ipcMain.handle('watcher:start', async (_, dir: string) => {

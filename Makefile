@@ -14,7 +14,8 @@ FREE_CODE_URL ?= https://github.com/paoloanzn/free-code.git
 
 # Optional branches for fork tracking
 KICAD_BRANCH ?= master
-FREECAD_BRANCH ?= main
+FREECAD_BRANCH ?= yiacad/freecad-1.1.0
+FREECAD_TARGET_TAG ?= 1.1.0
 YIACAD_KICAD_PLUGIN_BRANCH ?= main
 FREE_CODE_BRANCH ?= main
 
@@ -25,10 +26,13 @@ NPM ?= npm
 VENV_DIR ?= .venv
 PYTHON_VENV := $(PROJECT_ROOT)/$(VENV_DIR)/bin/python
 PIP_VENV := $(PROJECT_ROOT)/$(VENV_DIR)/bin/pip
+FREECAD_CMD ?= freecadcmd
+FREECAD_TIMEOUT ?= 120
+MACOS_DEPLOYMENT_TARGET ?= 14.0
 
 .PHONY: help doctor bootstrap-macos setup-python setup-web setup all \
-	dev dev-gateway dev-web test build-web clean \
-	yiacad-link yiacad-check \
+	dev dev-gateway dev-web test build-web clean build-kicad-bridge \
+	yiacad-link yiacad-check freecad-check freecad-pin-1.1.0 freecad-push-branch \
 	yiacad-plugin-clone yiacad-plugin-check yiacad-plugin-pull \
 	free-code-clone free-code-check free-code-pull \
 	kicad-clone-fork freecad-clone-fork forks-clone forks-pull kicad-smoke kicad-drc \
@@ -38,6 +42,9 @@ help:
 	@echo "Targets disponibles:"
 	@echo "  setup                 - Installe dependances Python et web"
 	@echo "  bootstrap-macos       - Verifie outils macOS de base"
+	@echo "  freecad-check         - Verifie presence de freecadcmd"
+	@echo "  freecad-pin-1.1.0     - Pointe vendor/freecad sur le tag $(FREECAD_TARGET_TAG)"
+	@echo "  freecad-push-branch   - Push la branche $(FREECAD_BRANCH) sur le fork"
 	@echo "  yiacad-link           - Lie ton repo Yiacad dans vendor/yiacad"
 	@echo "  yiacad-check          - Verifie le lien Yiacad"
 	@echo "  yiacad-plugin-clone   - Clone le plugin yiacad-kicad dans vendor/"
@@ -52,6 +59,7 @@ help:
 	@echo "  dev-web               - Lance Next.js web"
 	@echo "  test                  - Lance tests Python"
 	@echo "  build-web             - Build frontend"
+	@echo "  build-kicad-bridge    - Rebuild libkicad_bridge.a avec cible macOS $(MACOS_DEPLOYMENT_TARGET)"
 	@echo "  kicad-smoke           - Smoke test kicad-cli export SVG"
 	@echo "  kicad-drc             - DRC check kicad-cli sur fixture PCB"
 	@echo "  xcode-project-skeleton- Cree un squelette Swift macOS"
@@ -61,8 +69,13 @@ help:
 	@echo "  YIACAD_DIR=$(YIACAD_DIR)"
 	@echo "  KICAD_FORK_URL=$(KICAD_FORK_URL)"
 	@echo "  FREECAD_FORK_URL=$(FREECAD_FORK_URL)"
+	@echo "  FREECAD_BRANCH=$(FREECAD_BRANCH)"
+	@echo "  FREECAD_TARGET_TAG=$(FREECAD_TARGET_TAG)"
 	@echo "  YIACAD_KICAD_PLUGIN_URL=$(YIACAD_KICAD_PLUGIN_URL)"
 	@echo "  FREE_CODE_URL=$(FREE_CODE_URL)"
+	@echo "  FREECAD_CMD=$(FREECAD_CMD)"
+	@echo "  FREECAD_TIMEOUT=$(FREECAD_TIMEOUT)"
+	@echo "  MACOS_DEPLOYMENT_TARGET=$(MACOS_DEPLOYMENT_TARGET)"
 
 doctor:
 	@echo "[doctor] make: $$(command -v make || echo absent)"
@@ -79,6 +92,30 @@ bootstrap-macos:
 	@command -v $(PYTHON) >/dev/null || (echo "python3 manquant" && exit 1)
 	@command -v $(NPM) >/dev/null || (echo "npm manquant" && exit 1)
 	@echo "Environnement macOS OK"
+
+freecad-check:
+	@command -v $(FREECAD_CMD) >/dev/null && echo "FreeCAD CLI OK: $(FREECAD_CMD)" || (echo "freecadcmd introuvable. Installe FreeCAD ou definis FREECAD_CMD"; exit 1)
+
+freecad-pin-1.1.0:
+	@if [ ! -d "$(VENDOR_DIR)/freecad/.git" ]; then \
+		echo "vendor/freecad absent. Lance: make freecad-clone-fork"; \
+		exit 1; \
+	fi
+	@if [ -n "$$(git -C "$(VENDOR_DIR)/freecad" status --porcelain)" ]; then \
+		echo "vendor/freecad contient des changements locaux; nettoyage requis avant pin."; \
+		exit 1; \
+	fi
+	@git -C "$(VENDOR_DIR)/freecad" fetch origin --tags
+	@git -C "$(VENDOR_DIR)/freecad" checkout -B "$(FREECAD_BRANCH)" "$(FREECAD_TARGET_TAG)"
+	@echo "vendor/freecad pointe maintenant sur $(FREECAD_BRANCH) depuis $(FREECAD_TARGET_TAG)"
+
+freecad-push-branch:
+	@if [ ! -d "$(VENDOR_DIR)/freecad/.git" ]; then \
+		echo "vendor/freecad absent. Lance: make freecad-clone-fork"; \
+		exit 1; \
+	fi
+	@git -C "$(VENDOR_DIR)/freecad" push -u origin "$(FREECAD_BRANCH)"
+	@echo "Branche poussee sur le fork: $(FREECAD_BRANCH)"
 
 setup-python:
 	@if [ ! -x "$(PYTHON_VENV)" ]; then \
@@ -199,6 +236,10 @@ test:
 
 build-web:
 	cd "$(PROJECT_ROOT)" && $(NPM) run web:build
+
+build-kicad-bridge:
+	cd "$(PROJECT_ROOT)" && cmake -B kicad-bridge/build -S kicad-bridge -DCMAKE_OSX_DEPLOYMENT_TARGET="$(MACOS_DEPLOYMENT_TARGET)"
+	cd "$(PROJECT_ROOT)" && cmake --build kicad-bridge/build
 
 kicad-smoke:
 	cd "$(PROJECT_ROOT)" && bash scripts/kicad_smoke_check.sh

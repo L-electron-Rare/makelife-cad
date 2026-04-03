@@ -8,6 +8,7 @@ import './styles/globals.css'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Explorer = lazy(() => import('./pages/Explorer'))
+const FreeCAD = lazy(() => import('./pages/FreeCAD'))
 const Git = lazy(() => import('./pages/Git'))
 const CI = lazy(() => import('./pages/CI'))
 const AI = lazy(() => import('./pages/AI'))
@@ -17,6 +18,7 @@ const SettingsPage = lazy(() => import('./pages/Settings'))
 const PAGE_MAP = {
   dashboard: Dashboard,
   explorer: Explorer,
+  freecad: FreeCAD,
   git: Git,
   ci: CI,
   ai: AI,

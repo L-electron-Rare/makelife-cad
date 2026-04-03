@@ -27,6 +27,27 @@ pip install -e .
 pnpm install && pnpm dev
 ```
 
+## Environment flags (CLI CAD)
+
+- `FREECAD_CMD`: chemin vers `freecadcmd` ou `FreeCADCmd` (défaut: `freecadcmd`, détecte aussi `/Applications/FreeCAD.app/...` sur macOS).
+- `FREECAD_TIMEOUT`: délai (s) pour l’export FreeCAD (défaut 120).
+- FreeCAD ciblé par YiACAD: `1.1.0` ; les versions `1.1.x` restent supportées mais sont signalées comme non-cibles dans l’app macOS.
+- `OTEL_EXPORTER_OTLP_ENDPOINT`, `ALLOWED_ORIGINS`, `AI_*_MODEL`, `YIACAD_*`: voir `gateway/app.py`.
+
+## FreeCAD 1.1.0 workflow
+
+```bash
+# miroir source local du fork FreeCAD
+make freecad-clone-fork
+make freecad-pin-1.1.0
+
+# verification runtime local
+make freecad-check
+
+# push de la branche de travail du fork
+make freecad-push-branch
+```
+
 ## Project structure
 
 ```
