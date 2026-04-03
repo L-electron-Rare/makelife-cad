@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "test": "vitest run"
