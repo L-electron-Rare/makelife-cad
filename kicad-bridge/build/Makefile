@@ -177,6 +177,30 @@ src/bridge_pcb.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.s
 .PHONY : src/bridge_pcb.c.s
 
+src/bridge_pcb_edit.o: src/bridge_pcb_edit.c.o
+.PHONY : src/bridge_pcb_edit.o
+
+# target to build an object file
+src/bridge_pcb_edit.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o
+.PHONY : src/bridge_pcb_edit.c.o
+
+src/bridge_pcb_edit.i: src/bridge_pcb_edit.c.i
+.PHONY : src/bridge_pcb_edit.i
+
+# target to preprocess a source file
+src/bridge_pcb_edit.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.i
+.PHONY : src/bridge_pcb_edit.c.i
+
+src/bridge_pcb_edit.s: src/bridge_pcb_edit.c.s
+.PHONY : src/bridge_pcb_edit.s
+
+# target to generate assembly for a file
+src/bridge_pcb_edit.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.s
+.PHONY : src/bridge_pcb_edit.c.s
+
 src/bridge_sch.o: src/bridge_sch.c.o
 .PHONY : src/bridge_sch.o
 
@@ -201,6 +225,30 @@ src/bridge_sch.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.s
 .PHONY : src/bridge_sch.c.s
 
+src/bridge_sch_edit.o: src/bridge_sch_edit.c.o
+.PHONY : src/bridge_sch_edit.o
+
+# target to build an object file
+src/bridge_sch_edit.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o
+.PHONY : src/bridge_sch_edit.c.o
+
+src/bridge_sch_edit.i: src/bridge_sch_edit.c.i
+.PHONY : src/bridge_sch_edit.i
+
+# target to preprocess a source file
+src/bridge_sch_edit.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.i
+.PHONY : src/bridge_sch_edit.c.i
+
+src/bridge_sch_edit.s: src/bridge_sch_edit.c.s
+.PHONY : src/bridge_sch_edit.s
+
+# target to generate assembly for a file
+src/bridge_sch_edit.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kicad_bridge.dir/build.make CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.s
+.PHONY : src/bridge_sch_edit.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -216,9 +264,15 @@ help:
 	@echo "... src/bridge_pcb.o"
 	@echo "... src/bridge_pcb.i"
 	@echo "... src/bridge_pcb.s"
+	@echo "... src/bridge_pcb_edit.o"
+	@echo "... src/bridge_pcb_edit.i"
+	@echo "... src/bridge_pcb_edit.s"
 	@echo "... src/bridge_sch.o"
 	@echo "... src/bridge_sch.i"
 	@echo "... src/bridge_sch.s"
+	@echo "... src/bridge_sch_edit.o"
+	@echo "... src/bridge_sch_edit.i"
+	@echo "... src/bridge_sch_edit.s"
 .PHONY : help
 
 

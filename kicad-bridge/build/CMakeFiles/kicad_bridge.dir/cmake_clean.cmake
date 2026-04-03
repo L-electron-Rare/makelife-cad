@@ -3,8 +3,12 @@ file(REMOVE_RECURSE
   "CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o.d"
   "CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o"
   "CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o.d"
+  "CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o"
+  "CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o.d"
   "CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o"
   "CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o.d"
+  "CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o"
+  "CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o.d"
   "libkicad_bridge.a"
   "libkicad_bridge.pdb"
 )

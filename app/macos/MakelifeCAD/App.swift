@@ -13,6 +13,9 @@ struct MakelifeCADApp: App {
     @State private var showFileImporter  = false
     @State private var activeTab: AppTab = .schematic
 
+    // PCB editor ViewModel — created once and kept alive for the session.
+    @StateObject private var pcbEditorVM = PCBEditorViewModel(bridge: KiCadPCBBridge())
+
     var body: some Scene {
         WindowGroup {
             ContentView(
@@ -31,6 +34,58 @@ struct MakelifeCADApp: App {
                 }
                 .keyboardShortcut("o", modifiers: .command)
             }
+            CommandMenu("Edit") {
+                Button("Undo") { pcbEditorVM.undo() }
+                    .keyboardShortcut("z", modifiers: .command)
+                Button("Redo") { pcbEditorVM.redo() }
+                    .keyboardShortcut("z", modifiers: [.command, .shift])
+                Divider()
+                Button("Delete") { pcbEditorVM.deleteSelected() }
+                    .keyboardShortcut(.delete, modifiers: [])
+                Divider()
+                Button("Finish Zone") {
+                    pcbEditorVM.commitZone()
+                }
+                .keyboardShortcut(.return, modifiers: [])
+                .disabled(pcbEditorVM.activeTool != .zone)
+                Divider()
+                Button("Escape Tool") {
+                    pcbEditorVM.activeTool = .select
+                    pcbEditorVM.trackStart = nil
+                    pcbEditorVM.zonePoints = []
+                }
+                .keyboardShortcut(.escape, modifiers: [])
+            }
+            CommandGroup(replacing: .saveItem) {
+                Button("Save PCB\u{2026}") { savePCB() }
+                    .keyboardShortcut("s", modifiers: .command)
+                Button("Import Netlist\u{2026}") { importNetlist() }
+            }
+        }
+    }
+
+    // MARK: - PCB file operations
+
+    @MainActor
+    func savePCB() {
+        let panel = NSSavePanel()
+        if let type = UTType(filenameExtension: "kicad_pcb") {
+            panel.allowedContentTypes = [type]
+        }
+        panel.nameFieldStringValue = "board.kicad_pcb"
+        if panel.runModal() == .OK, let url = panel.url {
+            pcbEditorVM.save(to: url.path)
+        }
+    }
+
+    @MainActor
+    func importNetlist() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.message = "Select a netlist JSON file (from schematic export)"
+        if panel.runModal() == .OK, let url = panel.url,
+           let json = try? String(contentsOf: url, encoding: .utf8) {
+            _ = pcbEditorVM.bridge.importNetlist(json)
         }
     }
 }

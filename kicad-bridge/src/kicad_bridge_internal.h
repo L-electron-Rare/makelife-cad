@@ -7,6 +7,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 
 /* ------------------------------------------------------------------ */
 /* Schematic internal constants                                         */
@@ -44,7 +45,52 @@ typedef struct {
     int is_global;
 } KicadLabel;
 
+/* ------------------------------------------------------------------ */
+/* Schematic edit types (Phase 4)                                      */
+/* ------------------------------------------------------------------ */
+
+#define SCH_ITEMS_MAX  4096
+#define SCH_UNDO_MAX   128
+
+typedef enum {
+    SCH_ITEM_SYMBOL = 1,
+    SCH_ITEM_WIRE   = 2,
+    SCH_ITEM_LABEL  = 3,
+} SchItemType;
+
+typedef struct {
+    uint64_t    id;
+    SchItemType type;
+    int         deleted;
+    char        lib_id[256];
+    char        reference[64];
+    char        value[128];
+    char        footprint[256];
+    double      x, y;
+    double      x2, y2;
+    char        text[256];
+    char        props_json[1024];
+} SchItem;
+
+typedef enum {
+    CMD_ADD      = 1,
+    CMD_DELETE   = 2,
+    CMD_MOVE     = 3,
+    CMD_SET_PROP = 4,
+} SchCmdKind;
+
+typedef struct {
+    SchCmdKind kind;
+    SchItem    before;
+    SchItem    after;
+} SchCommand;
+
+/* ------------------------------------------------------------------ */
+/* KicadSch internal layout                                            */
+/* ------------------------------------------------------------------ */
+
 struct KicadSch {
+    /* --- Phase 1 fields (read-only viewer) --- */
     char*          raw_content;
     size_t         raw_len;
     char*          cleaned_content;
@@ -62,6 +108,21 @@ struct KicadSch {
     char*          json_cache;
     char*          svg_cache;
     char*          erc_cache;
+
+    /* --- Phase 4 fields (edit) --- */
+    SchItem    items[SCH_ITEMS_MAX];
+    int        items_count;
+    uint64_t   next_id;
+
+    SchCommand undo_stack[SCH_UNDO_MAX];
+    int        undo_head;
+    int        undo_size;
+
+    SchCommand redo_stack[SCH_UNDO_MAX];
+    int        redo_head;
+    int        redo_size;
+
+    char*      items_json;
 };
 
 /* ------------------------------------------------------------------ */

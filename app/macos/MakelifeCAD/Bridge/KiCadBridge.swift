@@ -228,6 +228,91 @@ struct DRCViolation: Identifiable, Codable {
     var isError: Bool { severity == "error" }
 }
 
+// MARK: - PCB Edit (Phase 5)
+
+extension KiCadPCBBridge {
+
+    // MARK: Add items
+
+    /// Place a footprint. Returns item ID > 0 on success, -1 on failure.
+    @discardableResult
+    func addFootprint(libID: String, x: Double, y: Double,
+                      layer: String = "F.Cu") -> Int32 {
+        guard let h = handle else { return -1 }
+        return kicad_pcb_add_footprint(h, libID, x, y, layer)
+    }
+
+    /// Add a point-to-point track segment. Returns item ID > 0 on success.
+    @discardableResult
+    func addTrack(x1: Double, y1: Double, x2: Double, y2: Double,
+                  width: Double, layer: String = "F.Cu",
+                  netID: Int32 = 0) -> Int32 {
+        guard let h = handle else { return -1 }
+        return kicad_pcb_add_track(h, x1, y1, x2, y2, width, layer, netID)
+    }
+
+    /// Add a via. Returns item ID > 0 on success.
+    @discardableResult
+    func addVia(x: Double, y: Double,
+                size: Double = 0.8, drill: Double = 0.4,
+                netID: Int32 = 0) -> Int32 {
+        guard let h = handle else { return -1 }
+        return kicad_pcb_add_via(h, x, y, size, drill, netID)
+    }
+
+    /// Add a copper pour zone. pointsJSON: JSON array of {x,y} objects.
+    @discardableResult
+    func addZone(netID: Int32, layer: String = "F.Cu",
+                 pointsJSON: String) -> Int32 {
+        guard let h = handle else { return -1 }
+        return kicad_pcb_add_zone(h, netID, layer, pointsJSON)
+    }
+
+    // MARK: Mutate items
+
+    /// Translate item by (dx, dy) in mm.
+    func moveItem(itemID: Int32, dx: Double, dy: Double) {
+        guard let h = handle else { return }
+        kicad_pcb_move_item(h, itemID, dx, dy)
+    }
+
+    /// Delete item by ID.
+    func deleteItem(itemID: Int32) {
+        guard let h = handle else { return }
+        kicad_pcb_delete_item(h, itemID)
+    }
+
+    // MARK: Undo / Redo
+
+    func undo() {
+        guard let h = handle else { return }
+        kicad_pcb_undo(h)
+    }
+
+    func redo() {
+        guard let h = handle else { return }
+        kicad_pcb_redo(h)
+    }
+
+    // MARK: Persistence
+
+    /// Save board to path. Returns true on success.
+    @discardableResult
+    func save(to path: String) -> Bool {
+        guard let h = handle else { return false }
+        return kicad_pcb_save(h, path) == 0
+    }
+
+    // MARK: Netlist import
+
+    /// Import net assignments from a JSON netlist string.
+    @discardableResult
+    func importNetlist(_ json: String) -> Bool {
+        guard let h = handle else { return false }
+        return kicad_pcb_import_netlist(h, json) == 0
+    }
+}
+
 // MARK: - Bridge errors
 
 enum KiCadBridgeError: Error, LocalizedError {
@@ -241,6 +326,230 @@ enum KiCadBridgeError: Error, LocalizedError {
         case .parseError(let p):   return "Parse error: \(p)"
         case .renderError:         return "SVG render failed"
         }
+    }
+}
+
+// MARK: - Schematic Item models (Phase 4)
+
+enum SchItemType: String, Codable {
+    case symbol
+    case wire
+    case label
+}
+
+struct SchItem: Identifiable, Codable {
+    let id: UInt64
+    let type: SchItemType
+
+    // Symbol fields (optional — present when type == .symbol)
+    let libId:     String?
+    let reference: String?
+    let value:     String?
+    let footprint: String?
+    let x:         Double?
+    let y:         Double?
+
+    // Wire fields (optional — present when type == .wire)
+    let x1: Double?
+    let y1: Double?
+    let x2: Double?
+    let y2: Double?
+
+    // Label fields (optional — present when type == .label)
+    let text: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, type
+        case libId     = "lib_id"
+        case reference, value, footprint
+        case x, y, x1, y1, x2, y2, text
+    }
+}
+
+// MARK: - Edit bridge errors
+
+extension KiCadBridgeError {
+    static var editFailed: KiCadBridgeError { .parseError("edit operation failed") }
+}
+
+// MARK: - KiCadSchEditBridge
+
+/// Extends the read-only KiCadBridge with edit, undo/redo, and save.
+/// Maintains a local copy of items for SwiftUI rendering.
+@MainActor
+final class KiCadSchEditBridge: ObservableObject {
+
+    // MARK: - Published state
+
+    @Published private(set) var items: [SchItem] = []
+    @Published private(set) var isDirty: Bool = false
+    @Published private(set) var canUndo: Bool = false
+    @Published private(set) var canRedo: Bool = false
+    @Published private(set) var errorMessage: String?
+
+    // MARK: - Private
+
+    private var handle: OpaquePointer?   // KicadSch*
+
+    // Undo/redo availability is tracked by a simple depth counter because
+    // the C layer owns the truth; Swift mirrors it.
+    private var undoDepth: Int = 0
+    private var redoDepth: Int = 0
+
+    // MARK: - Open / Close
+
+    func openSchematic(path: String) throws {
+        close()
+        guard FileManager.default.fileExists(atPath: path) else {
+            throw KiCadBridgeError.fileNotFound(path)
+        }
+        guard let h = kicad_sch_open(path) else {
+            throw KiCadBridgeError.parseError(path)
+        }
+        handle = OpaquePointer(h)
+        reloadItems()
+        isDirty   = false
+        undoDepth = 0
+        redoDepth = 0
+        syncUndoRedo()
+    }
+
+    func close() {
+        guard let h = handle else { return }
+        kicad_sch_close(UnsafeMutablePointer(h))
+        handle    = nil
+        items     = []
+        isDirty   = false
+        undoDepth = 0
+        redoDepth = 0
+        syncUndoRedo()
+    }
+
+    // MARK: - Edit operations
+
+    @discardableResult
+    func addSymbol(libId: String, x: Double, y: Double) -> UInt64 {
+        guard let h = handle else { return 0 }
+        let itemId = kicad_sch_add_symbol(UnsafeMutablePointer(h), libId, x, y)
+        if itemId > 0 {
+            markDirty()
+            reloadItems()
+        }
+        return itemId
+    }
+
+    @discardableResult
+    func addWire(x1: Double, y1: Double, x2: Double, y2: Double) -> UInt64 {
+        guard let h = handle else { return 0 }
+        let itemId = kicad_sch_add_wire(UnsafeMutablePointer(h), x1, y1, x2, y2)
+        if itemId > 0 {
+            markDirty()
+            reloadItems()
+        }
+        return itemId
+    }
+
+    @discardableResult
+    func addLabel(text: String, x: Double, y: Double) -> UInt64 {
+        guard let h = handle else { return 0 }
+        let itemId = kicad_sch_add_label(UnsafeMutablePointer(h), text, x, y)
+        if itemId > 0 {
+            markDirty()
+            reloadItems()
+        }
+        return itemId
+    }
+
+    func moveItem(id: UInt64, dx: Double, dy: Double) {
+        guard let h = handle else { return }
+        let result = kicad_sch_move_item(UnsafeMutablePointer(h), id, dx, dy)
+        if result == 0 {
+            markDirty()
+            reloadItems()
+        }
+    }
+
+    func deleteItem(id: UInt64) {
+        guard let h = handle else { return }
+        let result = kicad_sch_delete_item(UnsafeMutablePointer(h), id)
+        if result == 0 {
+            markDirty()
+            reloadItems()
+        }
+    }
+
+    func setProperty(id: UInt64, key: String, value: String) {
+        guard let h = handle else { return }
+        let result = kicad_sch_set_property(UnsafeMutablePointer(h), id, key, value)
+        if result == 0 {
+            markDirty()
+            reloadItems()
+        }
+    }
+
+    // MARK: - Undo / Redo
+
+    func undo() {
+        guard let h = handle, canUndo else { return }
+        let result = kicad_sch_undo(UnsafeMutablePointer(h))
+        if result == 0 {
+            undoDepth = max(0, undoDepth - 1)
+            redoDepth += 1
+            reloadItems()
+            syncUndoRedo()
+            if undoDepth == 0 { isDirty = false }
+        }
+    }
+
+    func redo() {
+        guard let h = handle, canRedo else { return }
+        let result = kicad_sch_redo(UnsafeMutablePointer(h))
+        if result == 0 {
+            redoDepth = max(0, redoDepth - 1)
+            undoDepth += 1
+            reloadItems()
+            syncUndoRedo()
+            isDirty = true
+        }
+    }
+
+    // MARK: - Save
+
+    func save(path: String) throws {
+        guard let h = handle else {
+            throw KiCadBridgeError.editFailed
+        }
+        let result = kicad_sch_save(UnsafeMutablePointer(h), path)
+        guard result == 0 else {
+            throw KiCadBridgeError.parseError("save failed: \(path)")
+        }
+        isDirty = false
+    }
+
+    // MARK: - Private helpers
+
+    private func reloadItems() {
+        guard let h = handle else { items = []; return }
+        guard let jsonPtr = kicad_sch_get_items_json(UnsafeMutablePointer(h))
+        else { return }
+        let data = Data(bytesNoCopy: UnsafeMutableRawPointer(mutating: jsonPtr),
+                        count: strlen(jsonPtr),
+                        deallocator: .none)
+        if let decoded = try? JSONDecoder().decode([SchItem].self, from: data) {
+            items = decoded
+        }
+    }
+
+    private func markDirty() {
+        undoDepth += 1
+        redoDepth  = 0
+        isDirty    = true
+        syncUndoRedo()
+    }
+
+    private func syncUndoRedo() {
+        canUndo = undoDepth > 0
+        canRedo = redoDepth > 0
     }
 }
 

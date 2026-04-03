@@ -10,7 +10,9 @@ set(CMAKE_DEPENDS_LANGUAGES
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_drc.c" "CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o" "gcc" "CMakeFiles/kicad_bridge.dir/src/bridge_drc.c.o.d"
   "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_pcb.c" "CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o" "gcc" "CMakeFiles/kicad_bridge.dir/src/bridge_pcb.c.o.d"
+  "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_pcb_edit.c" "CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o" "gcc" "CMakeFiles/kicad_bridge.dir/src/bridge_pcb_edit.c.o.d"
   "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_sch.c" "CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o" "gcc" "CMakeFiles/kicad_bridge.dir/src/bridge_sch.c.o.d"
+  "/Users/electron/Documents/Projets/Factory 4 Life/makelife-cad/kicad-bridge/src/bridge_sch_edit.c" "CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o" "gcc" "CMakeFiles/kicad_bridge.dir/src/bridge_sch_edit.c.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.
