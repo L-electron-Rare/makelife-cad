@@ -5,8 +5,8 @@ RUN groupadd -r app && useradd -r -g app -d /app app
 WORKDIR /app
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir -e .
-COPY . .
+COPY gateway/ gateway/
+RUN pip install --no-cache-dir .
 
 USER app
 EXPOSE 8001

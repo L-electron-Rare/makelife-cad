@@ -1,0 +1,51 @@
+name: Electron Build
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check bridges exist
+        id: check
+        run: |
+          missing=false
+          for f in electron/bridges/kicad.ts electron/bridges/git.ts electron/utils/detect-tools.ts; do
+            if [ ! -f "$f" ]; then
+              echo "Missing: $f"
+              missing=true
+            fi
+          done
+          if [ "$missing" = "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.check.outputs.skip != true
+        run: npm ci
+
+      - name: Build
+        if: steps.check.outputs.skip != true
+        run: npm run build
+
+      - name: Package macOS
+        if: steps.check.outputs.skip != true
+        run: npx electron-builder --mac --publish never
+
+      - name: Upload artifact
+        if: steps.check.outputs.skip != true
+        uses: actions/upload-artifact@v4
+        with:
+          name: makelife-cad-macos
+          path: release/*.dmg
+
+      - name: Skip notice
+        if: steps.check.outputs.skip == true
+        run: echo "Electron bridges not yet written — skipping build"

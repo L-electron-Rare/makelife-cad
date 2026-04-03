@@ -5,6 +5,7 @@ from __future__ import annotations
 import json as json_module
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from pydantic import BaseModel
 from gateway.llm_client import chat as llm_chat, LLMClientError
 from gateway.kicad_parser import parse_schematic, SchematicContext
 from gateway.prompts import build_component_prompt, build_review_prompt
+from gateway.freecad_runner import export_model as freecad_export_model
 from gateway.yiacad_client import (
     YiacadClientError,
     execute_action as yiacad_execute_action,
@@ -26,6 +28,7 @@ logger = logging.getLogger("makelife_cad.gateway")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_YIACAD_DIR = PROJECT_ROOT / "vendor" / "yiacad"
+DEFAULT_FREECAD_CMD = os.getenv("FREECAD_CMD", "freecadcmd")
 
 
 def init_telemetry(app_instance):
@@ -62,7 +65,7 @@ init_telemetry(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("ALLOWED_ORIGINS", "*").split(","),
+    allow_origins=os.environ.get("ALLOWED_ORIGINS", "https://cad.saillant.cc,https://life.saillant.cc").split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -125,10 +128,22 @@ def yiacad_status() -> dict[str, Any]:
     }
 
 
+def freecad_status() -> dict[str, Any]:
+    """Detect FreeCAD CLI availability for runtime tool registry."""
+    cmd = DEFAULT_FREECAD_CMD
+    exists = shutil.which(cmd) is not None
+    return {
+        "status": "available" if exists else "unavailable",
+        "configured_cmd": cmd,
+        "hint": "Install FreeCAD CLI (freecadcmd) or set FREECAD_CMD",
+    }
+
+
 def tools_snapshot() -> dict[str, dict[str, Any]]:
     """Return tool registry with runtime-updated values."""
     snapshot = {key: value.copy() for key, value in TOOLS.items()}
     snapshot["yiacad"]["status"] = yiacad_status()["status"]
+    snapshot["freecad"]["status"] = freecad_status()["status"]
     return snapshot
 
 
@@ -168,6 +183,12 @@ class YiacadRelayRequest(BaseModel):
     method: str = "GET"
     path: str
     payload: dict[str, Any] = {}
+
+
+class FreecadExportRequest(BaseModel):
+    input_path: str
+    format: str = "step"  # step | stl
+    output_dir: str | None = None
 
 
 # Endpoints
@@ -464,6 +485,14 @@ class SchematicReviewResponse(BaseModel):
     nets_analyzed: int
 
 
+class FreecadExportResponse(BaseModel):
+    status: str
+    output_path: str | None = None
+    returncode: int | None = None
+    stdout: str | None = None
+    stderr: str | None = None
+
+
 @app.post("/ai/schematic-review", response_model=SchematicReviewResponse)
 async def schematic_review(raw_request: Request):
     """AI-powered schematic design review."""
@@ -522,6 +551,33 @@ async def schematic_review(raw_request: Request):
         components_analyzed=len(schematic.components),
         nets_analyzed=len(schematic.nets),
     )
+
+
+@app.post("/freecad/export", response_model=FreecadExportResponse)
+async def freecad_export(request: FreecadExportRequest):
+    """Export a FreeCAD project to STEP or STL via FreeCAD CLI."""
+    resolved_input = _safe_resolve(request.input_path)
+    if resolved_input is None:
+        raise HTTPException(status_code=400, detail="Invalid or out-of-scope input_path")
+
+    resolved_output_dir = None
+    if request.output_dir:
+        resolved_output_dir = _safe_resolve(request.output_dir)
+        if resolved_output_dir is None:
+            raise HTTPException(status_code=400, detail="Invalid or out-of-scope output_dir")
+
+    try:
+        result = freecad_export_model(
+            input_path=resolved_input,
+            fmt=request.format,
+            output_dir=resolved_output_dir,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"FreeCAD export failed: {e}")
+
+    return FreecadExportResponse(**result)
 
 
 if __name__ == "__main__":
