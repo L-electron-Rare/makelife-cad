@@ -5,10 +5,12 @@ from __future__ import annotations
 import json as json_module
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+import httpx
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -178,6 +180,7 @@ class BOMEntry(BaseModel):
     quantity: int = 1
     supplier: str | None = None
     part_number: str | None = None
+    lcsc_part: str | None = None
 
 
 class YiacadRelayRequest(BaseModel):
@@ -190,6 +193,227 @@ class FreecadExportRequest(BaseModel):
     input_path: str
     format: str = "step"  # step | stl
     output_dir: str | None = None
+
+
+# Design action dispatcher
+# Maps (tool, action) → internal handler coroutine.
+# Handlers must return a dict compatible with DesignResult.result.
+# Raise HTTPException(400) for unknown combinations.
+
+async def _dispatch_kicad_drc(params: dict[str, Any]) -> dict[str, Any]:
+    import subprocess
+    project_path = params.get("project_path", "hardware/makelife-main/makelife-main.kicad_pcb")
+    try:
+        result = subprocess.run(
+            ["kicad-cli", "pcb", "drc", "--output", "/tmp/drc-report.json", project_path],
+            capture_output=True, text=True, timeout=30,
+        )
+        return {
+            "status": "pass" if result.returncode == 0 else "fail",
+            "returncode": result.returncode,
+            "stdout": result.stdout[:500],
+            "stderr": result.stderr[:500],
+        }
+    except FileNotFoundError:
+        return {"status": "unavailable", "message": "kicad-cli not installed"}
+    except subprocess.TimeoutExpired:
+        return {"status": "timeout", "message": "DRC took too long"}
+
+
+async def _dispatch_kicad_export_svg(params: dict[str, Any]) -> dict[str, Any]:
+    import subprocess
+    project_path = params.get("project_path", "hardware/makelife-main/makelife-main.kicad_sch")
+    output_dir = params.get("output_dir", "/tmp/")
+    try:
+        result = subprocess.run(
+            ["kicad-cli", "sch", "export", "svg", "--output", output_dir, project_path],
+            capture_output=True, text=True, timeout=30,
+        )
+        return {
+            "status": "ok" if result.returncode == 0 else "error",
+            "returncode": result.returncode,
+            "output": result.stdout[:500],
+            "stderr": result.stderr[:500],
+        }
+    except FileNotFoundError:
+        return {"status": "unavailable", "message": "kicad-cli not installed"}
+    except subprocess.TimeoutExpired:
+        return {"status": "timeout", "message": "SVG export took too long"}
+
+
+async def _dispatch_kicad_parse(params: dict[str, Any]) -> dict[str, Any]:
+    project_path = params.get("project_path")
+    if not project_path:
+        return {"status": "error", "message": "project_path is required for parse action"}
+    resolved = _safe_resolve(project_path)
+    if resolved is None:
+        return {"status": "error", "message": "Invalid or out-of-scope project_path"}
+    try:
+        content = resolved.read_text()
+        ctx: SchematicContext = parse_schematic(content)
+        return {
+            "status": "ok",
+            "components": len(ctx.components),
+            "nets": len(ctx.nets),
+            "component_list": [c for c in ctx.components[:50]],
+            "net_list": [n for n in ctx.nets[:50]],
+        }
+    except Exception as exc:
+        return {"status": "error", "message": str(exc)}
+
+
+async def _dispatch_freecad_export(params: dict[str, Any]) -> dict[str, Any]:
+    input_path = params.get("input_path")
+    if not input_path:
+        return {"status": "error", "message": "input_path is required for freecad export"}
+    resolved_input = _safe_resolve(input_path)
+    if resolved_input is None:
+        return {"status": "error", "message": "Invalid or out-of-scope input_path"}
+    output_dir = None
+    if params.get("output_dir"):
+        output_dir = _safe_resolve(params["output_dir"])
+        if output_dir is None:
+            return {"status": "error", "message": "Invalid or out-of-scope output_dir"}
+    try:
+        result = freecad_export_model(
+            input_path=resolved_input,
+            fmt=params.get("format", "step"),
+            output_dir=output_dir,
+        )
+        return result
+    except FileNotFoundError as exc:
+        return {"status": "error", "message": str(exc)}
+    except FreecadExportError as exc:
+        return {"status": "error", "message": str(exc)}
+    except Exception as exc:
+        return {"status": "error", "message": f"FreeCAD export failed: {exc}"}
+
+
+async def _dispatch_bom_validate(params: dict[str, Any]) -> dict[str, Any]:
+    entries_raw = params.get("entries", [])
+    issues = []
+    for entry in entries_raw:
+        ref = entry.get("reference", "?")
+        if not entry.get("value"):
+            issues.append({"reference": ref, "issue": "Missing value"})
+        if not entry.get("footprint"):
+            issues.append({"reference": ref, "issue": "Missing footprint"})
+    return {
+        "status": "pass" if not issues else "fail",
+        "total_entries": len(entries_raw),
+        "valid": len(entries_raw) - len(issues),
+        "issues": issues,
+    }
+
+
+async def _dispatch_ai_component_suggest(params: dict[str, Any]) -> dict[str, Any]:
+    description = params.get("description", "")
+    constraints = params.get("constraints", {})
+    project_context = params.get("project_context")
+
+    project_ctx = None
+    if project_context:
+        try:
+            ctx_path = _safe_resolve(project_context)
+            if ctx_path is not None:
+                project_ctx = parse_schematic(ctx_path.read_text())
+        except Exception as exc:
+            logger.warning("Failed to parse project context: %s", exc)
+
+    messages = build_component_prompt(
+        description=description,
+        constraints=constraints or None,
+        project_context=project_ctx,
+    )
+    try:
+        import json as _json
+        raw = await llm_chat(messages=messages, model=AI_COMPONENT_MODEL)
+        try:
+            suggestions = _json.loads(raw)
+        except (_json.JSONDecodeError, TypeError):
+            suggestions = [{"name": "raw_response", "reason": raw[:500]}]
+        return {
+            "status": "ok",
+            "suggestions": suggestions,
+            "model_used": AI_COMPONENT_MODEL,
+            "context_used": project_ctx is not None,
+        }
+    except LLMClientError as exc:
+        return {"status": "error", "message": f"LLM service error: {exc}"}
+
+
+async def _dispatch_ai_schematic_review(params: dict[str, Any]) -> dict[str, Any]:
+    project_path = params.get("project_path")
+    if not project_path:
+        return {"status": "error", "message": "project_path is required for schematic-review"}
+    resolved = _safe_resolve(project_path)
+    if resolved is None:
+        return {"status": "error", "message": "Invalid or out-of-scope project_path"}
+    try:
+        content = resolved.read_text()
+    except OSError as exc:
+        return {"status": "error", "message": str(exc)}
+
+    schematic = parse_schematic(content)
+    focus = params.get("focus")
+    messages = build_review_prompt(schematic, focus=focus)
+
+    model = AI_REVIEW_MODEL
+    try:
+        import json as _json
+        raw = await llm_chat(messages=messages, model=model)
+        try:
+            issues = _json.loads(raw)
+        except (_json.JSONDecodeError, TypeError):
+            issues = [{"severity": "info", "category": "parse_error", "message": raw[:200]}]
+        high = sum(1 for i in issues if i.get("severity") == "high")
+        medium = sum(1 for i in issues if i.get("severity") == "medium")
+        low = sum(1 for i in issues if i.get("severity") == "low")
+        return {
+            "status": "ok",
+            "issues": issues,
+            "summary": f"{len(issues)} issues found: {high} high, {medium} medium, {low} low",
+            "model_used": model,
+            "components_analyzed": len(schematic.components),
+            "nets_analyzed": len(schematic.nets),
+        }
+    except LLMClientError as exc:
+        return {"status": "error", "message": f"LLM service error: {exc}"}
+
+
+# Dispatch table: (tool, action) → async handler(params) -> dict
+_DISPATCH_TABLE: dict[tuple[str, str], Any] = {
+    ("kicad", "drc"): _dispatch_kicad_drc,
+    ("kicad", "export-svg"): _dispatch_kicad_export_svg,
+    ("kicad", "parse"): _dispatch_kicad_parse,
+    ("freecad", "export"): _dispatch_freecad_export,
+    ("bom", "validate"): _dispatch_bom_validate,
+    ("ai", "component-suggest"): _dispatch_ai_component_suggest,
+    ("ai", "schematic-review"): _dispatch_ai_schematic_review,
+}
+
+
+async def _dispatch_design_action(request: "DesignRequest") -> "DesignResult":
+    """Dispatch a design request to the appropriate real handler."""
+    key = (request.tool, request.action)
+    handler = _DISPATCH_TABLE.get(key)
+    if handler is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Action '{request.action}' is not yet implemented for tool '{request.tool}'",
+        )
+    params = {**(request.context or {}), **(request.parameters or {})}
+    result = await handler(params)
+    status = result.pop("status", "completed") if isinstance(result, dict) else "completed"
+    # Normalise status to completed/error for backward compatibility
+    if status not in ("completed", "error"):
+        status = "completed" if status not in ("error", "fail", "unavailable", "timeout") else "error"
+    return DesignResult(
+        tool=request.tool,
+        action=request.action,
+        status=status,
+        result=result,
+    )
 
 
 # Endpoints
@@ -246,15 +470,21 @@ async def relay_to_yiacad(request: YiacadRelayRequest):
 @app.post("/design", response_model=DesignResult)
 async def execute_design(request: DesignRequest):
     """Execute a design action on a CAD tool."""
-    if request.tool not in TOOLS:
+    # Accept any (tool, action) pair that is in the dispatch table OR the TOOLS registry.
+    dispatch_key = (request.tool, request.action)
+    in_dispatch = dispatch_key in _DISPATCH_TABLE
+    in_tools_registry = request.tool in TOOLS
+
+    if not in_dispatch and not in_tools_registry:
         raise HTTPException(status_code=404, detail=f"Tool '{request.tool}' not found")
 
-    tool = TOOLS[request.tool]
-    if request.action not in tool["capabilities"]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Action '{request.action}' not supported by {request.tool}. Available: {tool['capabilities']}",
-        )
+    if not in_dispatch and in_tools_registry:
+        tool = TOOLS[request.tool]
+        if request.action not in tool["capabilities"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Action '{request.action}' not supported by {request.tool}. Available: {tool['capabilities']}",
+            )
 
     logger.info(f"Design request: tool={request.tool} action={request.action}")
 
@@ -284,12 +514,7 @@ async def execute_design(request: DesignRequest):
             },
         )
 
-    return DesignResult(
-        tool=request.tool,
-        action=request.action,
-        status="queued",
-        result={"message": f"Action '{request.action}' queued for {request.tool}"},
-    )
+    return await _dispatch_design_action(request)
 
 
 @app.post("/components/search")
@@ -310,22 +535,65 @@ async def search_components(query: ComponentQuery):
     }
 
 
+_LCSC_PART_RE = re.compile(r"^C[0-9]+$")
+
+_JLCPCB_API_URL = (
+    "https://jlcpcb.com/api/overseas-pcb-order/v1/shoppingCart/smtGood/selectSmtComponentList"
+)
+
+
+async def _check_lcsc_availability(part_number: str) -> dict:
+    """Query JLCPCB parts API for stock availability of a LCSC part number."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(
+                _JLCPCB_API_URL,
+                json={"keyword": part_number, "pageSize": 1, "currentPage": 1},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            # Response shape: {"data": {"list": [{"stockCount": N, ...}], "total": N}, ...}
+            items = (data.get("data") or {}).get("list") or []
+            if items:
+                stock = items[0].get("stockCount", 0)
+                return {"available": stock > 0, "stock": stock}
+            return {"available": False, "stock": 0}
+    except Exception:
+        return {"available": None, "error": "lookup failed"}
+
+
 @app.post("/bom/validate")
-async def validate_bom(entries: list[BOMEntry]):
+async def validate_bom(
+    entries: list[BOMEntry],
+    check_availability: bool = Query(False, description="Query JLCPCB for LCSC part availability"),
+):
     """Validate a Bill of Materials."""
     issues = []
+    availability: dict[str, dict] = {}
+
     for entry in entries:
         if not entry.value:
             issues.append({"reference": entry.reference, "issue": "Missing value"})
         if not entry.footprint:
             issues.append({"reference": entry.reference, "issue": "Missing footprint"})
+        if entry.lcsc_part is not None:
+            if not _LCSC_PART_RE.match(entry.lcsc_part):
+                issues.append({
+                    "reference": entry.reference,
+                    "issue": f"Invalid LCSC part format: '{entry.lcsc_part}' (expected C[0-9]+)",
+                })
+            elif check_availability:
+                availability[entry.reference] = await _check_lcsc_availability(entry.lcsc_part)
 
-    return {
+    result: dict[str, Any] = {
         "total_entries": len(entries),
         "valid": len(entries) - len(issues),
         "issues": issues,
         "status": "pass" if not issues else "fail",
     }
+    if availability:
+        result["availability"] = availability
+    return result
 
 
 @app.get("/projects")

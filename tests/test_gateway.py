@@ -1,7 +1,7 @@
 """Tests for makelife-cad gateway."""
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from gateway.app import app
 
@@ -46,14 +46,14 @@ def test_get_tool_not_found():
     assert response.status_code == 404
 
 
-def test_design_request():
+def test_design_request_kicad_schematic_not_implemented():
+    """kicad+schematic is in the capabilities list but has no dispatcher yet — returns 400."""
     response = client.post("/design", json={
         "tool": "kicad",
         "action": "schematic",
         "parameters": {},
     })
-    assert response.status_code == 200
-    assert response.json()["status"] == "queued"
+    assert response.status_code == 400
 
 
 def test_design_request_yiacad_executes_relay():
@@ -194,3 +194,145 @@ def test_kicad_drc_custom_path_forwarded():
         assert response.json()["status"] == "pass"
         args = mock_run.call_args.args[0]
         assert target in args
+
+
+def test_bom_validate_valid_lcsc_part():
+    """BOM entry with a valid LCSC part format should pass without issues."""
+    response = client.post("/bom/validate", json=[
+        {"reference": "U1", "value": "ESP32", "footprint": "QFN-48", "lcsc_part": "C701341"},
+    ])
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "pass"
+    assert data["issues"] == []
+
+
+def test_bom_validate_invalid_lcsc_part():
+    """BOM entry with a malformed LCSC part number should produce an issue."""
+    response = client.post("/bom/validate", json=[
+        {"reference": "R1", "value": "10k", "footprint": "0402", "lcsc_part": "INVALID"},
+    ])
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "fail"
+    assert any("LCSC" in issue["issue"] for issue in data["issues"])
+
+
+def test_bom_validate_no_availability_check_by_default():
+    """Without check_availability=true, no HTTP calls should be made."""
+    with patch("gateway.app._check_lcsc_availability", new_callable=AsyncMock) as mock_check:
+        response = client.post("/bom/validate", json=[
+            {"reference": "U1", "value": "ESP32", "footprint": "QFN-48", "lcsc_part": "C701341"},
+        ])
+    assert response.status_code == 200
+    mock_check.assert_not_called()
+    assert "availability" not in response.json()
+
+
+def test_bom_validate_with_availability_check():
+    """With check_availability=true, _check_lcsc_availability should be called and results returned."""
+    mock_result = {"available": True, "stock": 500}
+    with patch("gateway.app._check_lcsc_availability", new_callable=AsyncMock, return_value=mock_result) as mock_check:
+        response = client.post(
+            "/bom/validate?check_availability=true",
+            json=[
+                {"reference": "U1", "value": "ESP32", "footprint": "QFN-48", "lcsc_part": "C701341"},
+            ],
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "pass"
+    mock_check.assert_called_once_with("C701341")
+    assert data["availability"]["U1"] == mock_result
+
+
+# --- /design dispatcher tests ---
+
+def test_design_dispatch_kicad_drc():
+    """kicad+drc should dispatch to the DRC handler and return completed status."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "DRC complete"
+        mock_run.return_value.stderr = ""
+        response = client.post("/design", json={
+            "tool": "kicad",
+            "action": "drc",
+            "parameters": {"project_path": "hardware/makelife-main/makelife-main.kicad_pcb"},
+        })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["tool"] == "kicad"
+    assert data["action"] == "drc"
+    assert data["status"] == "completed"
+    assert "returncode" in data["result"]
+
+
+def test_design_dispatch_kicad_export_svg():
+    """kicad+export-svg should dispatch to the SVG export handler."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        response = client.post("/design", json={
+            "tool": "kicad",
+            "action": "export-svg",
+            "parameters": {"project_path": "hardware/makelife-main/makelife-main.kicad_sch"},
+        })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["tool"] == "kicad"
+    assert data["action"] == "export-svg"
+    assert data["status"] == "completed"
+
+
+def test_design_dispatch_bom_validate():
+    """bom+validate should dispatch to the BOM validation handler."""
+    response = client.post("/design", json={
+        "tool": "bom",
+        "action": "validate",
+        "parameters": {
+            "entries": [
+                {"reference": "R1", "value": "10k", "footprint": "0402"},
+                {"reference": "C1", "value": "", "footprint": ""},
+            ]
+        },
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["tool"] == "bom"
+    assert data["action"] == "validate"
+    assert data["status"] == "error"  # fail normalised to error
+    assert data["result"]["total_entries"] == 2
+    assert len(data["result"]["issues"]) == 2
+
+
+def test_design_dispatch_unknown_tool():
+    """Completely unknown tool should return 404."""
+    response = client.post("/design", json={
+        "tool": "nonexistent",
+        "action": "drc",
+    })
+    assert response.status_code == 404
+
+
+def test_design_dispatch_unknown_action_for_known_tool():
+    """Known tool but unknown action (not in capabilities or dispatch table) returns 400."""
+    response = client.post("/design", json={
+        "tool": "kicad",
+        "action": "totally-unknown-action",
+    })
+    assert response.status_code == 400
+
+
+def test_design_dispatch_kicad_drc_kicad_cli_unavailable():
+    """When kicad-cli is not installed, dispatch returns 200 with status=error and message in result."""
+    with patch("subprocess.run", side_effect=FileNotFoundError):
+        response = client.post("/design", json={
+            "tool": "kicad",
+            "action": "drc",
+            "parameters": {},
+        })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "kicad-cli" in data["result"].get("message", "").lower()
