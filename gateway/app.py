@@ -26,6 +26,7 @@ from gateway.yiacad_client import (
     gateway_health as yiacad_gateway_health,
     relay as yiacad_relay,
 )
+from gateway.routers import kicad as kicad_router
 
 logger = logging.getLogger("makelife_cad.gateway")
 
@@ -64,6 +65,8 @@ app = FastAPI(
 )
 
 init_telemetry(app)
+
+app.include_router(kicad_router.router)
 
 app.add_middleware(
     CORSMiddleware,
