@@ -1,5 +1,14 @@
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
+
+// MARK: - Notification names
+
+extension Notification.Name {
+    static let makelifeGoToGitTab          = Notification.Name("makelife.goToGitTab")
+    static let makelifeShowCloneSheet      = Notification.Name("makelife.showCloneSheet")
+    static let makelifeShowNewProjectSheet = Notification.Name("makelife.showNewProjectSheet")
+}
 
 // MARK: - App entry point
 
@@ -86,6 +95,13 @@ struct MakelifeCADApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button("New Project…") {
+                    NotificationCenter.default.post(name: .makelifeShowNewProjectSheet, object: nil)
+                }
+                .keyboardShortcut("n", modifiers: .command)
+
+                Divider()
+
                 Button("Open…") { showFileImporter = true }
                     .keyboardShortcut("o", modifiers: .command)
                 Button("Open Project…") { openProjectPanel() }
@@ -118,6 +134,76 @@ struct MakelifeCADApp: App {
                     pcbEditorVM.zonePoints = []
                 }
                 .keyboardShortcut(.escape, modifiers: [])
+            }
+
+            // ── Repository ────────────────────────────────────────────────────
+            CommandMenu("Repository") {
+                Button("Clone Repository…") {
+                    NotificationCenter.default.post(name: .makelifeShowCloneSheet, object: nil)
+                }
+                .keyboardShortcut("k", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Push") {
+                    Task { await gitRepoVM.push() }
+                }
+                .keyboardShortcut("u", modifiers: [.command, .shift])
+
+                Button("Pull") {
+                    Task { await gitRepoVM.pull() }
+                }
+                .keyboardShortcut("l", modifiers: [.command, .control])
+
+                Divider()
+
+                Button("Stage All Changes") {
+                    Task { await gitRepoVM.stageAll() }
+                }
+                .keyboardShortcut("a", modifiers: [.command, .control])
+
+                Button("Go to Git Tab") {
+                    NotificationCenter.default.post(name: .makelifeGoToGitTab, object: nil)
+                }
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Refresh Repository Status") {
+                    Task { await gitRepoVM.refreshAll() }
+                }
+                .keyboardShortcut("r", modifiers: [.command, .control])
+
+                Button("Open Repository on GitHub") {
+                    if let slug = gitRepoVM.repoSlug,
+                       let url = URL(string: "https://github.com/\(slug)") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .disabled(gitRepoVM.repoSlug == nil)
+            }
+
+            // ── Tools ──────────────────────────────────────────────────────────
+            CommandMenu("Tools") {
+                Button("Authenticate GitHub CLI…") {
+                    openTerminalWith(command: "gh auth login --web")
+                }
+
+                Button("Install Dependencies via Homebrew…") {
+                    openTerminalWith(command: "brew install gh git && brew install --cask kicad")
+                }
+
+                Divider()
+
+                Button("Check Gateway Status") {
+                    Task { await fineFabVM.checkStatus() }
+                }
+
+                Button("Open Gateway in Browser") {
+                    if let url = URL(string: fineFabVM.baseURL) {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             }
         }
 
@@ -181,6 +267,13 @@ struct MakelifeCADApp: App {
             if let url { PCBDocumentView(fileURL: url) }
         }
         .defaultSize(width: 900, height: 600)
+
+        // ── Preferences (⌘,) ───────────────────────────────────────────────
+        Settings {
+            SettingsView()
+                .environmentObject(fineFabVM)
+                .environmentObject(gitRepoVM)
+        }
 
         // ── MODÈLE 2 — DocumentGroup scaffold (not yet active) ─────────────
         // To enable: uncomment and remove the WindowGroup above.
@@ -312,6 +405,9 @@ struct ContentView: View {
     @State private var showViolations = false
     @State private var aiProvider: AIProvider = .onDevice
     @State private var showPalette = false
+    @State private var showCloneSheet = false
+    @State private var clonePrefilledRepo = ""
+    @State private var showNewProjectSheet = false
 
     // Modèle 1 + 3 window opening
     @Environment(\.openWindow) private var openWindow
@@ -348,6 +444,33 @@ struct ContentView: View {
             aiViewModel.schematicSummary = summary
             fineFabVM.schematicContext   = summary
         }
+        // ── Repository menu shortcut → switch to Git tab ───────────────────
+        .onReceive(NotificationCenter.default.publisher(for: .makelifeGoToGitTab)) { _ in
+            activeTab = .git
+        }
+        // ── Clone sheet (from menu or ProjectPanel) ─────────────────────────
+        .onReceive(NotificationCenter.default.publisher(for: .makelifeShowCloneSheet)) { notification in
+            clonePrefilledRepo = notification.object as? String ?? ""
+            showCloneSheet = true
+        }
+        .sheet(isPresented: $showCloneSheet) {
+            CloneRepoView(prefilledRepo: clonePrefilledRepo) { url in
+                let accessing = url.startAccessingSecurityScopedResource()
+                defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+                projectManager.open(url: url)
+                activeTab = .schematic
+            }
+        }
+        // ── New Project sheet ────────────────────────────────────────────────
+        .onReceive(NotificationCenter.default.publisher(for: .makelifeShowNewProjectSheet)) { _ in
+            showNewProjectSheet = true
+        }
+        .sheet(isPresented: $showNewProjectSheet) {
+            NewProjectView { proURL in
+                projectManager.open(url: proURL)
+                activeTab = .schematic
+            }
+        }
     }
 
     // MARK: - Sidebar
@@ -364,6 +487,13 @@ struct ContentView: View {
                 onOpenPCB: { url in
                     activeTab = .pcb
                     try? pcbBridge.openPCB(path: url.path)
+                },
+                onCloneRequested: {
+                    clonePrefilledRepo = ""
+                    showCloneSheet = true
+                },
+                onNewProjectRequested: {
+                    showNewProjectSheet = true
                 }
             )
 
@@ -414,7 +544,10 @@ struct ContentView: View {
         case .ai:
             AIDetailView(aiVM: aiViewModel, fineFabVM: fineFabVM, provider: aiProvider)
         case .github:
-            GitHubDetailView(entry: githubVM.selectedEntry)
+            GitHubDetailView(entry: githubVM.selectedEntry, onCloneRepo: { slug in
+                clonePrefilledRepo = slug
+                showCloneSheet = true
+            })
         case .git:
             GitRepoDetailView(vm: gitRepoVM)
         default:

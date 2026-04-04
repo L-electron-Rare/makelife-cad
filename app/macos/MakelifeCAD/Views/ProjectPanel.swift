@@ -12,6 +12,10 @@ struct ProjectPanel: View {
     var onOpenSchematic: ((URL) -> Void)?
     /// Called when the user wants to switch focus to the PCB tab.
     var onOpenPCB: ((URL) -> Void)?
+    /// Called when the user taps "Clone from GitHub…".
+    var onCloneRequested: (() -> Void)?
+    /// Called when the user taps "New Project…".
+    var onNewProjectRequested: (() -> Void)?
 
     @State private var showImporter = false
 
@@ -113,6 +117,30 @@ struct ProjectPanel: View {
                 showImporter = true
             } label: {
                 Label("Open Project\u{2026}", systemImage: "folder.badge.plus")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+
+            // New Project button
+            Button {
+                onNewProjectRequested?()
+            } label: {
+                Label("New Project\u{2026}", systemImage: "plus.app")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+
+            // Clone from GitHub button
+            Button {
+                onCloneRequested?()
+            } label: {
+                Label("Clone from GitHub\u{2026}", systemImage: "arrow.down.to.line.compact")
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)

@@ -114,6 +114,10 @@ struct GitHubSidebarView: View {
 
 struct GitHubDetailView: View {
     let entry: GitHubEntry?
+    /// Called when the user wants to clone the repository (slug passed as argument).
+    var onCloneRepo: ((String) -> Void)?
+
+    private let repoSlug = "L-electron-Rare/makelife-hard"
 
     var body: some View {
         if let entry = entry {
@@ -159,6 +163,20 @@ struct GitHubDetailView: View {
                         }
                         .font(.callout)
                     }
+                }
+
+                if let onCloneRepo {
+                    Divider()
+                    Button {
+                        onCloneRepo(repoSlug)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.down.to.line.compact")
+                            Text("Clone Repository & Open Project")
+                        }
+                        .font(.callout)
+                    }
+                    .help("Clone \(repoSlug) locally and open a KiCad project from it")
                 }
             }
             .padding(20)
