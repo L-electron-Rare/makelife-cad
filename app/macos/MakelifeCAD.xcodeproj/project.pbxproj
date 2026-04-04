@@ -30,6 +30,8 @@
 		6CD36E78EFAC5729855F6799 /* PCBInspectorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5710CA2BA087FFCF79DC3AEA /* PCBInspectorPanel.swift */; };
 		79D12883DD23B0DACBA9BEED /* PropertyEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52A9F1A669F8B5904FC7C15 /* PropertyEditor.swift */; };
 		8524BD01CD24AF285CFC9F8E /* KiCadProDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF76436F69E7183829DC365D /* KiCadProDocument.swift */; };
+		8C38BB322F809DBE00A4DC1E /* GitHubRepoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C38BB312F809DBE00A4DC1E /* GitHubRepoViewModel.swift */; };
+		8C38BB342F809DFA00A4DC1E /* GitHubRepoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C38BB332F809DFA00A4DC1E /* GitHubRepoPanel.swift */; };
 		95186AE92ED0C5FE3A328087 /* KiCadBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 156296D04E695F91BAF0C165 /* KiCadBridge.swift */; };
 		95378695B7014D44C109F75D /* GitHubLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2D2799937EB71C6D633341 /* GitHubLibraryViewModel.swift */; };
 		974896398C4BEBFA2D9EC1AA /* CrossRefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B92690A1C5E431EBD7104F7 /* CrossRefView.swift */; };
@@ -83,6 +85,8 @@
 		7957EB1D21761AC68598B17E /* FreeCADViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeCADViewModel.swift; sourceTree = "<group>"; };
 		81B7EEBFFD695B1FCC437CAB /* CommandRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandRunner.swift; sourceTree = "<group>"; };
 		864E8C963ED8B73DEF760D97 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		8C38BB312F809DBE00A4DC1E /* GitHubRepoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRepoViewModel.swift; sourceTree = "<group>"; };
+		8C38BB332F809DFA00A4DC1E /* GitHubRepoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRepoPanel.swift; sourceTree = "<group>"; };
 		94F0FB87125D1EB06547FCB4 /* FootprintPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FootprintPalette.swift; sourceTree = "<group>"; };
 		9A91144B32A44D5063026D24 /* SymbolPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolPalette.swift; sourceTree = "<group>"; };
 		9DCC7C4165FEF0EF2E8D7390 /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
@@ -116,6 +120,7 @@
 				DE2D2799937EB71C6D633341 /* GitHubLibraryViewModel.swift */,
 				AF76436F69E7183829DC365D /* KiCadProDocument.swift */,
 				B10C9FB4E19B07BB592F5443 /* KiCadProject.swift */,
+				8C38BB312F809DBE00A4DC1E /* GitHubRepoViewModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -158,6 +163,7 @@
 				9A91144B32A44D5063026D24 /* SymbolPalette.swift */,
 				FDE1CE01C6853F58758D11A0 /* TerminalWindow.swift */,
 				5025C1A85B2BA0AD6FDEC3AD /* ViolationsView.swift */,
+				8C38BB332F809DFA00A4DC1E /* GitHubRepoPanel.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -318,6 +324,7 @@
 				44ACB95956E821CA00F01836 /* PCBEditorView.swift in Sources */,
 				6CD36E78EFAC5729855F6799 /* PCBInspectorPanel.swift in Sources */,
 				9BB96ADC975F890A27751BEB /* PCBView.swift in Sources */,
+				8C38BB342F809DFA00A4DC1E /* GitHubRepoPanel.swift in Sources */,
 				22C499541464346CE3D1A0E7 /* ProjectPanel.swift in Sources */,
 				79D12883DD23B0DACBA9BEED /* PropertyEditor.swift in Sources */,
 				032DE702E020E8A14B7B0C3D /* SchematicDocumentView.swift in Sources */,
@@ -326,6 +333,7 @@
 				415B7F58827DDEE15B204456 /* SymbolPalette.swift in Sources */,
 				5B2B4FA18267CDED864F79EB /* TerminalWindow.swift in Sources */,
 				1E398B1F534A1C1627BB3D18 /* ViolationsView.swift in Sources */,
+				8C38BB322F809DBE00A4DC1E /* GitHubRepoViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,17 +362,13 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/include",
-				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/build",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad.tests";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;
@@ -378,17 +382,13 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/include",
-				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/build",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad.tests";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;
@@ -404,20 +404,14 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/include",
-				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/build",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
 				MARKETING_VERSION = 0.1.0;
-				OTHER_LDFLAGS = (
-					"-lkicad_bridge",
-				);
+				OTHER_LDFLAGS = "-lkicad_bridge";
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
 				PRODUCT_NAME = MakelifeCAD;
 				SDKROOT = macosx;
@@ -553,20 +547,14 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/include",
-				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/include";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../kicad-bridge/build",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../kicad-bridge/build";
 				MARKETING_VERSION = 0.1.0;
-				OTHER_LDFLAGS = (
-					"-lkicad_bridge",
-				);
+				OTHER_LDFLAGS = "-lkicad_bridge";
 				PRODUCT_BUNDLE_IDENTIFIER = "cc.saillant.makelife-cad";
 				PRODUCT_NAME = MakelifeCAD;
 				SDKROOT = macosx;

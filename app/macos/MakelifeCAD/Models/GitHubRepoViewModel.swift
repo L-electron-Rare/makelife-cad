@@ -289,7 +289,7 @@ final class GitHubRepoViewModel: ObservableObject {
     }
 
     func createPR(title: String, body: String) async {
-        guard let root = projectRoot, let slug = repoSlug else { return }
+        guard let _ = projectRoot, let slug = repoSlug else { return }
         let r = await shell("gh", "pr", "create",
                             "--repo", slug,
                             "--title", title,

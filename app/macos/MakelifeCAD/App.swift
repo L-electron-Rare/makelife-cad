@@ -16,6 +16,7 @@ struct MakelifeCADApp: App {
     @StateObject private var freecadVM      = FreeCADViewModel()
     @StateObject private var githubVM       = GitHubLibraryViewModel()
     @StateObject private var commandRunner  = CommandRunner()
+    @StateObject private var gitRepoVM     = GitHubRepoViewModel()
 
     // App-level UI state
     @State private var selectedComponent: SchematicComponent?
@@ -37,6 +38,7 @@ struct MakelifeCADApp: App {
                 fineFabVM: fineFabVM,
                 freecadVM: freecadVM,
                 githubVM: githubVM,
+                gitRepoVM: gitRepoVM,
                 selectedComponent: $selectedComponent,
                 selectedFootprint: $selectedFootprint,
                 showFileImporter: $showFileImporter,
@@ -56,10 +58,12 @@ struct MakelifeCADApp: App {
                 freecadVM.gatewayBaseURL = fineFabVM.baseURL
                 freecadVM.attach(project: projectManager.currentProject)
                 await freecadVM.refreshAll()
+                gitRepoVM.attach(projectRoot: projectManager.currentProject?.rootURL)
             }
             .onChange(of: projectManager.currentProject?.url) { _, _ in
                 guard let project = projectManager.currentProject else {
                     freecadVM.attach(project: nil)
+                    gitRepoVM.attach(projectRoot: nil)
                     return
                 }
                 if project.hasSchematic {
@@ -70,6 +74,7 @@ struct MakelifeCADApp: App {
                 }
                 freecadVM.attach(project: project)
                 Task { await freecadVM.refreshAll() }
+                gitRepoVM.attach(projectRoot: project.rootURL)
             }
             .onChange(of: projectManager.currentProject?.schematicURL) { _, url in
                 fineFabVM.schematicURL = url
@@ -255,6 +260,7 @@ enum AppTab: String, CaseIterable {
     case freecad   = "FreeCAD"
     case ai        = "AI"
     case github    = "Library"
+    case git       = "Git"
 
     var systemImage: String {
         switch self {
@@ -264,13 +270,14 @@ enum AppTab: String, CaseIterable {
         case .freecad:   return "cube.transparent"
         case .ai:        return "sparkles"
         case .github:    return "books.vertical"
+        case .git:       return "arrow.triangle.branch"
         }
     }
 
     var isCadTab: Bool {
         switch self {
         case .schematic, .pcb, .viewer3d: return true
-        case .freecad, .ai, .github: return false
+        case .freecad, .ai, .github, .git: return false
         }
     }
 }
@@ -280,7 +287,7 @@ extension AppTab {
         switch self {
         case .schematic:          return "Run ERC"
         case .pcb, .viewer3d:     return "Run DRC"
-        case .freecad, .ai, .github: return ""
+        case .freecad, .ai, .github, .git: return ""
         }
     }
 }
@@ -295,6 +302,7 @@ struct ContentView: View {
     @ObservedObject var fineFabVM: FineFabViewModel
     @ObservedObject var freecadVM: FreeCADViewModel
     @ObservedObject var githubVM: GitHubLibraryViewModel
+    @ObservedObject var gitRepoVM: GitHubRepoViewModel
     @Binding var selectedComponent: SchematicComponent?
     @Binding var selectedFootprint: PCBFootprint?
     @Binding var showFileImporter: Bool
@@ -390,6 +398,8 @@ struct ContentView: View {
                 AISidebarView(aiVM: aiViewModel, fineFabVM: fineFabVM, provider: $aiProvider)
             case .github:
                 GitHubSidebarView(vm: githubVM)
+            case .git:
+                GitRepoSidebarView(vm: gitRepoVM)
             }
         }
     }
@@ -405,6 +415,8 @@ struct ContentView: View {
             AIDetailView(aiVM: aiViewModel, fineFabVM: fineFabVM, provider: aiProvider)
         case .github:
             GitHubDetailView(entry: githubVM.selectedEntry)
+        case .git:
+            GitRepoDetailView(vm: gitRepoVM)
         default:
             cadDetail
         }
@@ -613,7 +625,7 @@ struct ContentView: View {
         switch activeTab {
         case .schematic:       return schBridge.errorMessage
         case .pcb, .viewer3d:  return pcbBridge.errorMessage
-        case .freecad, .ai, .github:     return nil
+        case .freecad, .ai, .github, .git: return nil
         }
     }
 
