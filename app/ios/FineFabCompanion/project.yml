@@ -1,0 +1,15 @@
+name: FineFabCompanion
+options:
+  bundleIdPrefix: cc.saillant
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  FineFabCompanion:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: cc.saillant.finefab-companion
+      INFOPLIST_FILE: Sources/Info.plist
+      SWIFT_VERSION: "5.10"
+      CODE_SIGN_ENTITLEMENTS: Sources/FineFabCompanion.entitlements
