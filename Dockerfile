@@ -16,9 +16,9 @@ RUN echo "deb http://deb.debian.org/debian sid main" \
     rm -rf /var/lib/apt/lists/*
 
 # Install FreeCAD 1.x AppImage (headless STEP/STL export)
-ARG FREECAD_VERSION=1.0.0
+ARG FREECAD_VERSION=1.1.0
 RUN mkdir -p /opt/freecad && \
-    wget -q "https://github.com/FreeCAD/FreeCAD/releases/download/${FREECAD_VERSION}/FreeCAD_${FREECAD_VERSION}-conda-Linux-x86_64.AppImage" \
+    wget -q "https://github.com/FreeCAD/FreeCAD/releases/download/${FREECAD_VERSION}/FreeCAD_${FREECAD_VERSION}-Linux-x86_64-py311.AppImage" \
     -O /opt/freecad/FreeCAD.AppImage && \
     chmod +x /opt/freecad/FreeCAD.AppImage && \
     cd /opt/freecad && ./FreeCAD.AppImage --appimage-extract > /dev/null 2>&1 && \
