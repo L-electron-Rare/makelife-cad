@@ -1,19 +1,23 @@
 FROM python:3.12-slim
 
-# System deps + KiCad backports repo
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free" \
-    > /etc/apt/sources.list.d/bookworm-backports.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    curl bzip2 ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install KiCad CLI from backports (DRC, ERC, SVG/Gerber export)
+# System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    -t bookworm-backports \
-    kicad \
+    curl bzip2 ca-certificates gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install FreeCAD 1.1 via conda-forge (headless STEP/STL export)
+# Install KiCad 9.x from official Debian unstable (kicad-cli only)
+# KiCad is not in bookworm-backports, available in sid/unstable
+RUN echo "deb http://deb.debian.org/debian sid main" \
+    > /etc/apt/sources.list.d/sid.list && \
+    echo 'APT::Default-Release "bookworm";' \
+    > /etc/apt/apt.conf.d/99default-release && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends -t sid kicad-cli 2>/dev/null || \
+    echo "WARN: kicad-cli not available from sid, skipping" && \
+    rm -f /etc/apt/sources.list.d/sid.list && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install FreeCAD 1.x via conda-forge (headless STEP/STL export)
 RUN curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
     -o /tmp/miniconda.sh && \
     bash /tmp/miniconda.sh -b -p /opt/conda && \
