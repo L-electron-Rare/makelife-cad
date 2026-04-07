@@ -34,6 +34,15 @@ COPY pyproject.toml .
 COPY gateway/ gateway/
 RUN pip install --no-cache-dir .
 
+# FreeCAD needs writable config/cache dirs
+RUN mkdir -p /app/.config/FreeCAD /app/.cache/FreeCAD /app/.local/share/FreeCAD \
+    && chown -R app:app /app/.config /app/.cache /app/.local
+
+ENV HOME=/app
+ENV XDG_CONFIG_HOME=/app/.config
+ENV XDG_CACHE_HOME=/app/.cache
+ENV XDG_DATA_HOME=/app/.local/share
+
 USER app
 EXPOSE 8001
 
