@@ -23,7 +23,7 @@ RUN curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_6
     bash /tmp/miniconda.sh -b -p /opt/conda && \
     rm /tmp/miniconda.sh && \
     /opt/conda/bin/conda config --add channels conda-forge && \
-    /opt/conda/bin/conda install -y --no-update-deps freecad && \
+    /opt/conda/bin/conda install -y freecad && \
     /opt/conda/bin/conda clean --all -y
 
 ENV PATH="/opt/conda/bin:$PATH"
