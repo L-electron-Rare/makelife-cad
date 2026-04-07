@@ -1,6 +1,15 @@
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+# Install FreeCAD headless for STEP/STL export
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    freecad-cmd \
+    && rm -rf /var/lib/apt/lists/* \
+    || echo "FreeCAD not available in repos, skipping (use FREECAD_CMD env to configure)"
+
+ENV FREECAD_CMD=${FREECAD_CMD:-freecadcmd}
+
 RUN groupadd -r app && useradd -r -g app -d /app app
 WORKDIR /app
 
