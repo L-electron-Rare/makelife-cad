@@ -23,7 +23,7 @@ RUN mkdir -p /opt/freecad && \
     chmod +x /opt/freecad/FreeCAD.AppImage && \
     cd /opt/freecad && ./FreeCAD.AppImage --appimage-extract > /dev/null 2>&1 && \
     rm FreeCAD.AppImage && \
-    ln -s /opt/freecad/squashfs-root/usr/bin/FreeCADCmd /usr/local/bin/FreeCADCmd
+    ln -s /opt/freecad/squashfs-root/usr/bin/freecadcmd /usr/local/bin/FreeCADCmd
 
 ENV FREECAD_CMD=/usr/local/bin/FreeCADCmd
 
