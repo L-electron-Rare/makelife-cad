@@ -128,3 +128,7 @@ DerivedData/
 .tox/
 .ipynb_checkpoints/
 .pnpm-store/
+
+# External KiCad source clones (cloned by kicad-native build scripts)
+kicad-native/kicad/
+kicad-native/kicad-mac-builder/
