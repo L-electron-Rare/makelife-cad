@@ -143,7 +143,7 @@ struct CrossRefView: View {
             .padding(.horizontal, 14)
             .padding(.bottom, 8)
         }
-        .background(.ultraThinMaterial)
+        .adaptiveSidebarBackground()
     }
 
     // MARK: Table
@@ -188,6 +188,37 @@ struct CrossRefView: View {
                 }
             }
             .width(min: 130, ideal: 160)
+
+            TableColumn("Locate") { row in
+                HStack(spacing: 4) {
+                    Button {
+                        NotificationCenter.default.post(
+                            name: .makelifeHighlightInSchematic,
+                            object: row.reference
+                        )
+                    } label: {
+                        Image(systemName: "doc.richtext")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Locate \(row.reference) in Schematic")
+
+                    if row.isPlaced {
+                        Button {
+                            NotificationCenter.default.post(
+                                name: .makelifeHighlightInPCB,
+                                object: row.reference
+                            )
+                        } label: {
+                            Image(systemName: "cpu")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Locate \(row.reference) in PCB")
+                    }
+                }
+            }
+            .width(min: 60, ideal: 70, max: 80)
         }
         .tableStyle(.inset)
     }

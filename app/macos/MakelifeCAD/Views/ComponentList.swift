@@ -41,7 +41,7 @@ struct ComponentList: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
+            .adaptiveSidebarBackground()
 
             Divider()
 
@@ -150,6 +150,18 @@ private struct ComponentRow: View {
                     .font(.system(.body, design: .monospaced))
                     .bold()
                 Spacer()
+                Button {
+                    NotificationCenter.default.post(
+                        name: .makelifeHighlightInPCB,
+                        object: component.reference
+                    )
+                } label: {
+                    Image(systemName: "cpu")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Locate in PCB")
                 Text(component.value)
                     .font(.caption)
                     .foregroundStyle(.secondary)

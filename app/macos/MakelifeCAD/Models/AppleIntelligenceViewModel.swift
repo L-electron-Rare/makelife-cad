@@ -1,6 +1,58 @@
 import Foundation
 import FoundationModels
 
+// MARK: - @Generable structured types (macOS 26+)
+
+@available(macOS 26.0, *)
+@Generable(description: "A suggested electronic component for a circuit")
+struct ComponentSuggestion {
+    @Guide(description: "Reference designator like R1, C1, U1")
+    var reference: String
+
+    @Guide(description: "Component value like 10kΩ, 100nF, LM1117-3.3")
+    var value: String
+
+    @Guide(description: "KiCad footprint like Resistor_SMD:R_0603_1608Metric")
+    var footprint: String
+
+    @Guide(description: "Brief explanation why this component is needed")
+    var reason: String
+}
+
+@available(macOS 26.0, *)
+@Generable(description: "A list of suggested components for a circuit requirement")
+struct ComponentSuggestionList {
+    @Guide(description: "One-line summary of the circuit requirement")
+    var summary: String
+
+    var suggestions: [ComponentSuggestion]
+}
+
+@available(macOS 26.0, *)
+@Generable(description: "A single design issue found in a schematic review")
+struct SchematicIssue {
+    @Guide(description: "Severity: critical, warning, or info")
+    var severity: String
+
+    @Guide(description: "Component reference or area where the issue is")
+    var location: String
+
+    @Guide(description: "Description of the issue")
+    var issue: String
+
+    @Guide(description: "Recommended fix for the issue")
+    var fix: String
+}
+
+@available(macOS 26.0, *)
+@Generable(description: "A schematic design review with issues found")
+struct SchematicReviewResult {
+    @Guide(description: "One-line overall assessment of the schematic quality")
+    var summary: String
+
+    var issues: [SchematicIssue]
+}
+
 // MARK: - Mode
 
 enum AIMode: String, CaseIterable, Identifiable {
@@ -48,6 +100,10 @@ final class AppleIntelligenceViewModel: ObservableObject {
     @Published var mode: AIMode = .ask
     @Published private(set) var state: State = .idle
     @Published private(set) var responseText: String = ""
+
+    /// Structured suggestions from the last Suggest run (macOS 26+).
+    /// UI can use these to offer "Add to schematic" actions.
+    @Published private(set) var lastSuggestionRefs: [(reference: String, value: String, footprint: String)] = []
 
     /// Set by ContentView when a schematic is loaded — automatically prepended to prompts.
     var schematicSummary: String? = nil
@@ -148,57 +204,82 @@ final class AppleIntelligenceViewModel: ObservableObject {
 
     @available(macOS 26.0, *)
     private func structuredSuggest(_ userPrompt: String) async {
-        await streamGuidedResponse(
-            instructions: """
-                You are a KiCad EDA expert. Suggest five electronic components for the given \
-                circuit requirement. Use standard reference designators and realistic values.
-                """,
-            prompt: """
-                Suggest 5 components for: \(userPrompt)
+        state = .thinking
+        lastSuggestionRefs = []
+        do {
+            let session = LanguageModelSession(
+                instructions: """
+                    You are a KiCad EDA expert. Suggest electronic components for the given \
+                    circuit requirement. Use standard reference designators, realistic values, \
+                    and common KiCad footprints.
+                    """
+            )
+            state = .streaming
+            let response = try await session.respond(
+                to: "Suggest 5 components for: \(userPrompt)",
+                generating: ComponentSuggestionList.self
+            )
+            guard !Task.isCancelled else { return }
+            let result = response.content
 
-                Return plain text in this format:
-                Component Suggestions
-                ----------------------------------------
-                1. <reference>  <value>
-                   <reason>
-                """
-        )
+            // Format structured result as readable text
+            var text = "Component Suggestions\n"
+            text += "────────────────────────────────\n"
+            text += result.summary + "\n\n"
+            for (i, s) in result.suggestions.enumerated() {
+                text += "\(i + 1). \(s.reference)  \(s.value)\n"
+                text += "   Footprint: \(s.footprint)\n"
+                text += "   \(s.reason)\n\n"
+            }
+            responseText = text
+
+            // Store structured data for "Add to schematic" actions
+            lastSuggestionRefs = result.suggestions.map {
+                (reference: $0.reference, value: $0.value, footprint: $0.footprint)
+            }
+            state = .done
+        } catch is CancellationError {
+            state = .idle
+        } catch {
+            state = .error(error.localizedDescription)
+        }
     }
 
     @available(macOS 26.0, *)
     private func structuredReview(_ userPrompt: String) async {
-        await streamGuidedResponse(
-            instructions: """
-                You are a KiCad EDA design reviewer. Find design issues: missing decoupling \
-                capacitors, wrong voltage levels, missing pull-up/pull-down resistors, \
-                power pin errors, ERC violations.
-                """,
-            prompt: """
-                Review this schematic: \(userPrompt)
-
-                Return plain text in this format:
-                Schematic Review
-                ----------------------------------------
-                <one-line summary>
-
-                Issues (<count>):
-                - [severity] [location] <issue>
-                  Fix: <recommended fix>
-                """
-        )
-    }
-
-    @available(macOS 26.0, *)
-    private func streamGuidedResponse(instructions: String, prompt: String) async {
         state = .thinking
         do {
-            let session = LanguageModelSession(instructions: instructions)
-            let stream = session.streamResponse(to: prompt)
+            let session = LanguageModelSession(
+                instructions: """
+                    You are a KiCad EDA design reviewer. Find design issues: missing decoupling \
+                    capacitors, wrong voltage levels, missing pull-up/pull-down resistors, \
+                    power pin errors, ERC violations.
+                    """
+            )
             state = .streaming
-            for try await partial in stream {
-                guard !Task.isCancelled else { return }
-                responseText = partial.content
+            let response = try await session.respond(
+                to: "Review this schematic: \(userPrompt)",
+                generating: SchematicReviewResult.self
+            )
+            guard !Task.isCancelled else { return }
+            let result = response.content
+
+            // Format structured result as readable text
+            var text = "Schematic Review\n"
+            text += "────────────────────────────────\n"
+            text += result.summary + "\n\n"
+            text += "Issues (\(result.issues.count)):\n"
+            for issue in result.issues {
+                let icon: String
+                switch issue.severity.lowercased() {
+                case "critical": icon = "🔴"
+                case "warning":  icon = "🟡"
+                default:         icon = "🔵"
+                }
+                text += "\(icon) [\(issue.severity)] \(issue.location): \(issue.issue)\n"
+                text += "   Fix: \(issue.fix)\n\n"
             }
+            responseText = text
             state = .done
         } catch is CancellationError {
             state = .idle

@@ -15,21 +15,17 @@ cmake --build ../../kicad-bridge/build
 # Produces: ../../kicad-bridge/build/libkicad_bridge.a (arm64)
 ```
 
-### Xcode build (preferred)
+### Xcode build
 
 The Xcode project is generated from `project.yml` via xcodegen:
 ```bash
 xcodegen generate   # regenerate MakelifeCAD.xcodeproj from project.yml
 ```
 
-**Known `project.yml` bug:** `OTHER_LINKER_FLAGS` is not a valid Xcode build setting (correct key: `OTHER_LDFLAGS`). Until fixed in `project.yml`, build via command line with the override:
+Build via Xcode IDE (MakelifeCAD scheme) or command line:
 ```bash
-cd app/macos
-xcodebuild -project MakelifeCAD.xcodeproj -scheme MakelifeCAD \
-  -configuration Debug OTHER_LDFLAGS="-lkicad_bridge" build
+xcodebuild -project MakelifeCAD.xcodeproj -scheme MakelifeCAD -configuration Debug build
 ```
-
-Or in Xcode Build Settings: **Target → Build Settings → Other Linker Flags** → add `-lkicad_bridge`.
 
 ### Run tests
 ```bash
@@ -51,6 +47,15 @@ Tests live in `MakelifeCADTests/FreeCADSupportTests.swift` — covers `YiacadPro
 ```bash
 open /Users/electron/Library/Developer/Xcode/DerivedData/MakelifeCAD-*/Build/Products/Debug/MakelifeCAD.app
 ```
+
+## Project configuration (`project.yml`)
+
+- **Bundle ID:** `cc.saillant.makelife-cad`
+- **Deployment target:** macOS 14.0
+- **Swift version:** 5.10
+- **Bridging header:** `MakelifeCAD/Bridge/MakelifeCAD-Bridging-Header.h`
+- **C library:** links `-lkicad_bridge` from `../../kicad-bridge/build`
+- **Header search:** `../../kicad-bridge/include`
 
 ## Architecture
 
@@ -76,7 +81,7 @@ C Library      (../../kicad-bridge/ → libkicad_bridge.a)
 | `bridge_3d.c`      | `kicad_pcb_export_3d_json`  | Export PCB as 3D-ready JSON                              |
 | `bridge_swift.c`   | `kbs_`                      | Swift-friendly aliases (`kbs_sch_*`)                     |
 
-The bridging header (`Bridge/MakelifeCAD-Bridging-Header.h`) imports both `kicad_bridge.h` and `kicad_bridge_swift.h`. **`KiCadBridge.swift` uses `kbs_` prefixed aliases** for all schematic operations.
+The bridging header imports both `kicad_bridge.h` and `kicad_bridge_swift.h`. **`KiCadBridge.swift` uses `kbs_` prefixed aliases** for all schematic operations.
 
 All C strings returned by the bridge are owned by the handle (do not free); valid until the next mutating call or `close()`.
 
@@ -99,27 +104,44 @@ All bridge classes are `@MainActor final class` with `@Published` state. Undo/re
 | `AppleIntelligenceViewModel` | On-device AI via `FoundationModels` (macOS 26+)                            |
 | `FineFabViewModel`           | Factory AI gateway at `http://localhost:8001` — suggest/review/status      |
 | `GitHubLibraryViewModel`     | GitHub component library browser                                           |
+| `GitHubRepoViewModel`        | Git status, staging, commits, push/pull, PR list via `gh` CLI              |
 | `CommandRunner`              | Shell command execution for the Terminal window                            |
 | `GitDiffViewModel`           | Schematic diff vs HEAD                                                     |
 | `PCBEditorViewModel`         | Interactive PCB canvas — 5 tools: select/track/via/footprint/zone          |
+| `NewProjectScaffolder`       | Creates FineFab directory structure with KiCad templates + optional GitHub repo |
 
 `KiCadProject` and `KiCadProjectManager` are typealiases for `YiacadProject` / `YiacadProjectManager` (transitional names kept for older views).
 
 ### SwiftUI tab structure
 
-`App.swift` → `ContentView` → `NavigationSplitView`:
+`App.swift` → `ContentView` → `NavigationSplitView` with 7 tabs via `AppTab` enum:
 
-- **Sidebar** varies per `AppTab`: `ComponentList` (schematic), `LayerPanel` (PCB), `FreeCADSidebarView`, `AISidebarView`, `GitHubSidebarView`
-- **Detail** via `AppTab` enum: `SchematicView` / `PCBView` / `PCB3DView` / `FreeCADDetailView` / `AIDetailView` / `GitHubDetailView`
-- **Violations panel** (collapsible bottom strip): `ViolationsView` with ERC (schematic) or DRC (PCB) results
+| Tab | Sidebar | Detail |
+|-----|---------|--------|
+| `schematic` | `ComponentList` | `SchematicView` |
+| `pcb` | `LayerPanel` | `PCBView` |
+| `viewer3d` | — | `PCB3DView` |
+| `freecad` | `FreeCADSidebarView` | `FreeCADDetailView` |
+| `ai` | `AISidebarView` | `AIDetailView` |
+| `github` | `GitHubSidebarView` | `GitHubDetailView` |
+| `git` | `GitRepoSidebarView` | (git panel) |
+
+**Violations panel** (collapsible bottom strip): `ViolationsView` with ERC (schematic) or DRC (PCB) results.
 
 ### Window model
 
 Three patterns used in `App.swift`:
 
-- **Model 1 — Utility windows** (`Window`): BOM, Terminal, AI Chat, Fab Preview, Git Diff, Sch↔PCB Cross-Ref, Design Notes — opened via toolbar buttons
-- **Model 2 — DocumentGroup** scaffold: commented out, not yet active
-- **Model 3 — Document windows** (`WindowGroup` with `URL` value): `sch-doc` / `pcb-doc` — detach schematic or PCB into its own window via `openWindow(id:value:)`
+- **Utility windows** (`Window`): BOM, Terminal, AI Chat, Fab Preview, Git Diff, Sch↔PCB Cross-Ref, Design Notes — opened via toolbar buttons
+- **Document windows** (`WindowGroup` with `URL` value): `sch-doc` / `pcb-doc` — detach schematic or PCB into its own window via `openWindow(id:value:)`
+- **DocumentGroup** scaffold: commented out, not yet active
+
+### Inter-view notifications
+
+Views communicate via `Notification.Name` extensions:
+- `.makelifeGoToGitTab` — switches active tab to git
+- `.makelifeShowCloneSheet` — opens clone repo dialog
+- `.makelifeShowNewProjectSheet` — opens new project dialog
 
 ### File open flow
 
@@ -145,6 +167,20 @@ Two providers selectable in the AI tab:
 
 The active schematic is automatically injected as context into AI prompts when a schematic is loaded (`schematicSummary` / `schematicContext`).
 
+## UserDefaults keys
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `finefab.gateway.url` | `http://localhost:8001` | AI gateway URL |
+| `tools.gh.path` | auto-detect | Override `gh` binary path |
+| `tools.kicad.cli.path` | auto-detect | Override `kicad-cli` path |
+| `tools.freecad.path` | auto-detect | Override FreeCAD app path |
+| `git.default.branch` | — | Default branch for new projects |
+| `git.auto.stage` | — | Auto-stage KiCad files on save |
+| `github.pat` | — | GitHub PAT fallback (when `gh auth` unavailable) |
+
+Settings UI: `SettingsView` with 4 tabs — General (gateway URL), GitHub (auth + PAT), Tools (KiCad/FreeCAD/gh paths), Setup (dependency status checks).
+
 ## Key constraints
 
 - All bridge calls must be on `@MainActor` — no background threads for C API calls
@@ -152,3 +188,12 @@ The active schematic is automatically injected as context into AI prompts when a
 - `kicad-bridge/build/libkicad_bridge.a` must exist **before** the Xcode build links
 - The app targets macOS 14+ (`NavigationSplitView`, structured concurrency); Apple Intelligence features gated on macOS 26
 - FreeCAD integration requires FreeCAD 1.1.x; version check uses `FreeCADRuntimeResolver.supportedPrefix = "1.1."`
+- Isolate external tool access in model/bridge layers — views must remain presentation-only
+
+## Conventions
+
+- Commit prefixes: `feat:`, `fix:`, `chore:`, `docs:` (scoped forms ok: `fix(gateway):`)
+- PascalCase for types/files, camelCase for properties/methods
+- One primary type per file; group by responsibility (Views/, Models/, Bridge/)
+- Add new tests under `MakelifeCADTests/`, name after feature (e.g. `KiCadProjectTests.swift`)
+- PRs: short summary, impacted areas, validation steps, screenshots for UI changes

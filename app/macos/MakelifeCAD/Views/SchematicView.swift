@@ -115,7 +115,42 @@ struct SchematicView: View {
             if !bridge.isLoaded {
                 GridBackground()
             }
+
+            // Rendering engine indicator (bottom-right)
+            if bridge.isLoaded {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        renderingBadge
+                    }
+                }
+                .padding(8)
+            }
         }
+    }
+
+    @ViewBuilder
+    private var renderingBadge: some View {
+        let isNative = bridge.isNativeRendering
+        HStack(spacing: 4) {
+            Image(systemName: isNative ? "checkmark.seal.fill" : "gearshape")
+                .font(.caption2)
+            Text(isNative ? "KiCad \(bridge.nativeRenderer.kicadVersion)" : "Fallback")
+                .font(.caption2)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isNative
+                      ? Color.green.opacity(0.2)
+                      : Color.orange.opacity(0.2))
+        )
+        .foregroundStyle(isNative ? .green : .orange)
+        .help(isNative
+              ? "Rendered by KiCad's native engine — pixel-perfect"
+              : "Rendered by built-in engine — install KiCad for better quality")
     }
 }
 

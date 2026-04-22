@@ -72,6 +72,9 @@ struct SchematicEditorView: View {
     @State private var labelInputText: String = ""
     @State private var labelPlacementPoint: CGPoint = .zero
 
+    // Item move preview (screen pixels)
+    @State private var movePreviewOffset: CGSize = .zero
+
     // Palette + inspector
     @State private var showPalette:   Bool = true
     @State private var showInspector: Bool = true
@@ -133,6 +136,15 @@ struct SchematicEditorView: View {
             if let id = selectedItemId {
                 bridge.deleteItem(id: id)
                 selectedItemId = nil
+            }
+        }
+        .onExitCommand {
+            if wireStart != nil {
+                wireStart = nil
+            } else {
+                selectedItemId = nil
+                activeTool = .select
+                pendingSymbolLibId = nil
             }
         }
         .sheet(isPresented: $showLabelSheet) {
@@ -221,7 +233,7 @@ struct SchematicEditorView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(.ultraThinMaterial)
+        .adaptiveGlassBackground()
     }
 
     // MARK: - Canvas
@@ -291,7 +303,11 @@ struct SchematicEditorView: View {
     private func drawSymbol(ctx: GraphicsContext, item: SchItem,
                             selected: Bool) {
         guard let sx = item.x, let sy = item.y else { return }
-        let screen = transform.toScreen(CGPoint(x: sx, y: sy))
+        var screen = transform.toScreen(CGPoint(x: sx, y: sy))
+        if selected {
+            screen.x += movePreviewOffset.width
+            screen.y += movePreviewOffset.height
+        }
         let r: CGFloat = 14 * min(transform.scale, 2)
 
         let rect = CGRect(x: screen.x - r, y: screen.y - r,
@@ -321,8 +337,14 @@ struct SchematicEditorView: View {
                           selected: Bool) {
         guard let x1 = item.x1, let y1 = item.y1,
               let x2 = item.x2, let y2 = item.y2 else { return }
-        let p1 = transform.toScreen(CGPoint(x: x1, y: y1))
-        let p2 = transform.toScreen(CGPoint(x: x2, y: y2))
+        var p1 = transform.toScreen(CGPoint(x: x1, y: y1))
+        var p2 = transform.toScreen(CGPoint(x: x2, y: y2))
+        if selected {
+            p1.x += movePreviewOffset.width
+            p1.y += movePreviewOffset.height
+            p2.x += movePreviewOffset.width
+            p2.y += movePreviewOffset.height
+        }
         var path = Path()
         path.move(to: p1)
         path.addLine(to: p2)
@@ -334,7 +356,11 @@ struct SchematicEditorView: View {
     private func drawLabel(ctx: GraphicsContext, item: SchItem,
                            selected: Bool) {
         guard let sx = item.x, let sy = item.y, let text = item.text else { return }
-        let screen = transform.toScreen(CGPoint(x: sx, y: sy))
+        var screen = transform.toScreen(CGPoint(x: sx, y: sy))
+        if selected {
+            screen.x += movePreviewOffset.width
+            screen.y += movePreviewOffset.height
+        }
         let flagW: CGFloat = CGFloat(text.count) * 7 * min(transform.scale, 1.5) + 6
         let flagH: CGFloat = 14
         var path = Path()
@@ -473,13 +499,32 @@ struct SchematicEditorView: View {
                                         y: transform.offsetY)
                     isDragging = true
                 }
-                if activeTool == .select && selectedItemId == nil {
-                    transform.offsetX = dragStart.x + value.translation.width
-                    transform.offsetY = dragStart.y + value.translation.height
+                if activeTool == .select {
+                    if selectedItemId != nil {
+                        // Drag-to-move selected item (visual preview)
+                        movePreviewOffset = CGSize(
+                            width:  value.translation.width,
+                            height: value.translation.height)
+                    } else {
+                        // Pan canvas
+                        transform.offsetX = dragStart.x + value.translation.width
+                        transform.offsetY = dragStart.y + value.translation.height
+                    }
                 }
                 dragOffset = value.location
             }
-            .onEnded { _ in isDragging = false }
+            .onEnded { value in
+                if activeTool == .select,
+                   let id = selectedItemId,
+                   movePreviewOffset != .zero {
+                    // Commit move: screen pixels → schematic mils
+                    let dx = movePreviewOffset.width  / transform.scale
+                    let dy = movePreviewOffset.height / transform.scale
+                    bridge.moveItem(id: id, dx: dx, dy: dy)
+                    movePreviewOffset = .zero
+                }
+                isDragging = false
+            }
     }
 }
 

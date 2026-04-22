@@ -35,6 +35,14 @@ struct PCBCanvasItem: Identifiable {
     var selected: Bool
 }
 
+// MARK: - Edit operation log (for undo/redo)
+
+enum PCBEditOp {
+    case add(PCBCanvasItem)
+    case delete(PCBCanvasItem)
+    case move(itemID: Int32, dx: Double, dy: Double)
+}
+
 // MARK: - Editor ViewModel
 
 @MainActor
@@ -51,6 +59,8 @@ final class PCBEditorViewModel: ObservableObject {
     @Published var activeNetID: Int32 = 0
     @Published var gridSize: Double  = 1.0       // mm
     @Published var showRatsnest: Bool = true
+    @Published private(set) var canUndo: Bool = false
+    @Published private(set) var canRedo: Bool = false
 
     // Track drawing state (nil when not drawing)
     var trackStart: CGPoint? = nil
@@ -59,8 +69,23 @@ final class PCBEditorViewModel: ObservableObject {
     // Pixels per mm (canvas scale)
     var scale: Double = 4.0
 
+    // Operation log for undo/redo
+    private var undoStack: [PCBEditOp] = []
+    private var redoStack: [PCBEditOp] = []
+
     init(bridge: KiCadPCBBridge) {
         self.bridge = bridge
+    }
+
+    private func pushUndo(_ op: PCBEditOp) {
+        undoStack.append(op)
+        redoStack.removeAll()
+        syncUndoRedo()
+    }
+
+    private func syncUndoRedo() {
+        canUndo = !undoStack.isEmpty
+        canRedo = !redoStack.isEmpty
     }
 
     // MARK: Grid snap
@@ -84,10 +109,12 @@ final class PCBEditorViewModel: ObservableObject {
                                   layer: activeLayer,
                                   netID: activeNetID)
         if id > 0 {
-            items.append(PCBCanvasItem(
+            let item = PCBCanvasItem(
                 id: id, type: 2,
                 x: s.x, y: s.y, x2: e.x, y2: e.y,
-                width: trackWidth, layer: activeLayer, libID: "", selected: false))
+                width: trackWidth, layer: activeLayer, libID: "", selected: false)
+            items.append(item)
+            pushUndo(.add(item))
         }
     }
 
@@ -97,10 +124,12 @@ final class PCBEditorViewModel: ObservableObject {
                                 size: viaSize, drill: viaDrill,
                                 netID: activeNetID)
         if id > 0 {
-            items.append(PCBCanvasItem(
+            let item = PCBCanvasItem(
                 id: id, type: 3,
                 x: p.x, y: p.y, x2: p.x, y2: p.y,
-                width: viaSize, layer: activeLayer, libID: "", selected: false))
+                width: viaSize, layer: activeLayer, libID: "", selected: false)
+            items.append(item)
+            pushUndo(.add(item))
         }
     }
 
@@ -109,10 +138,12 @@ final class PCBEditorViewModel: ObservableObject {
         let id = bridge.addFootprint(libID: libID, x: p.x, y: p.y,
                                       layer: activeLayer)
         if id > 0 {
-            items.append(PCBCanvasItem(
+            let item = PCBCanvasItem(
                 id: id, type: 1,
                 x: p.x, y: p.y, x2: p.x, y2: p.y,
-                width: 1.0, layer: activeLayer, libID: libID, selected: false))
+                width: 1.0, layer: activeLayer, libID: libID, selected: false)
+            items.append(item)
+            pushUndo(.add(item))
         }
     }
 
@@ -128,10 +159,12 @@ final class PCBEditorViewModel: ObservableObject {
                                  pointsJSON: json)
         if id > 0 {
             let first = zonePoints.first.map { snapPoint($0) } ?? .zero
-            items.append(PCBCanvasItem(
+            let item = PCBCanvasItem(
                 id: id, type: 4,
                 x: first.x, y: first.y, x2: first.x, y2: first.y,
-                width: 0, layer: activeLayer, libID: "", selected: false))
+                width: 0, layer: activeLayer, libID: "", selected: false)
+            items.append(item)
+            pushUndo(.add(item))
         }
         zonePoints = []
     }
@@ -144,26 +177,53 @@ final class PCBEditorViewModel: ObservableObject {
         bridge.moveItem(itemID: selID, dx: dx, dy: dy)
         items[idx].x  += dx; items[idx].y  += dy
         items[idx].x2 += dx; items[idx].y2 += dy
+        pushUndo(.move(itemID: selID, dx: dx, dy: dy))
     }
 
     func deleteSelected() {
-        guard let selID = selectedItemID else { return }
+        guard let selID = selectedItemID,
+              let item = items.first(where: { $0.id == selID }) else { return }
         bridge.deleteItem(itemID: selID)
         items.removeAll { $0.id == selID }
         selectedItemID = nil
+        pushUndo(.delete(item))
     }
 
     func undo() {
+        guard let op = undoStack.popLast() else { return }
         bridge.undo()
-        // Refresh simplified: remove last item if it was ADD.
-        // Full sync requires bridge to expose get_items_json — deferred to Task 6 polish.
-        if !items.isEmpty { items.removeLast() }
+        switch op {
+        case .add(let item):
+            items.removeAll { $0.id == item.id }
+        case .delete(let item):
+            items.append(item)
+        case .move(let itemID, let dx, let dy):
+            if let idx = items.firstIndex(where: { $0.id == itemID }) {
+                items[idx].x  -= dx; items[idx].y  -= dy
+                items[idx].x2 -= dx; items[idx].y2 -= dy
+            }
+        }
+        redoStack.append(op)
         selectedItemID = nil
+        syncUndoRedo()
     }
 
     func redo() {
+        guard let op = redoStack.popLast() else { return }
         bridge.redo()
-        // Mirror redo: full sync deferred to Phase 6.
+        switch op {
+        case .add(let item):
+            items.append(item)
+        case .delete(let item):
+            items.removeAll { $0.id == item.id }
+        case .move(let itemID, let dx, let dy):
+            if let idx = items.firstIndex(where: { $0.id == itemID }) {
+                items[idx].x  += dx; items[idx].y  += dy
+                items[idx].x2 += dx; items[idx].y2 += dy
+            }
+        }
+        undoStack.append(op)
+        syncUndoRedo()
     }
 
     func save(to path: String) {

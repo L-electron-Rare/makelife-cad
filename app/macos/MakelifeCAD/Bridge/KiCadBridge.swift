@@ -563,6 +563,10 @@ final class KiCadSchEditBridge: ObservableObject {
 
 /// Thread-safe wrapper around the kicad_bridge C library.
 /// One instance per open schematic — close with `close()` when done.
+///
+/// SVG rendering uses a two-tier strategy:
+/// 1. **Native** — `kicad-cli sch export svg` for pixel-perfect rendering (requires KiCad installed)
+/// 2. **Fallback** — custom C bridge renderer (always available, approximate)
 @MainActor
 final class KiCadBridge: ObservableObject {
 
@@ -571,7 +575,14 @@ final class KiCadBridge: ObservableObject {
     @Published private(set) var isLoaded: Bool = false
     @Published private(set) var errorMessage: String?
 
+    /// Whether SVG was rendered by KiCad's native pipeline (true) or the C bridge fallback (false).
+    @Published private(set) var isNativeRendering: Bool = false
+
     private var handle: UnsafeMutableRawPointer?  // KicadSch*
+    private var currentSchematicPath: String?
+
+    /// Shared native renderer — detects kicad-cli once at startup.
+    let nativeRenderer = KiCadNativeRenderer()
 
     // MARK: - Public API
 
@@ -584,6 +595,7 @@ final class KiCadBridge: ObservableObject {
             throw KiCadBridgeError.parseError(path)
         }
         handle = h
+        currentSchematicPath = path
         do {
             try loadComponents()
             try loadSVG()
@@ -593,6 +605,13 @@ final class KiCadBridge: ObservableObject {
         }
         isLoaded = true
         errorMessage = nil
+
+        // Async: try native rendering for pixel-perfect SVG (replaces fallback)
+        if nativeRenderer.isAvailable {
+            Task {
+                await loadNativeSVG(path: path)
+            }
+        }
     }
 
     /// Run ERC checks and return the parsed violations.
@@ -610,9 +629,21 @@ final class KiCadBridge: ObservableObject {
         guard let h = handle else { return }
         kbs_sch_close(h)
         handle = nil
+        currentSchematicPath = nil
         components = []
         svgContent = ""
         isLoaded = false
+        isNativeRendering = false
+    }
+
+    /// Force a refresh of the SVG rendering (e.g. after edit + save).
+    func refreshSVG() async {
+        guard let path = currentSchematicPath else { return }
+        if nativeRenderer.isAvailable {
+            await loadNativeSVG(path: path)
+        } else {
+            try? loadSVG()
+        }
     }
 
     // MARK: - Private loaders
@@ -628,12 +659,26 @@ final class KiCadBridge: ObservableObject {
         components = try JSONDecoder().decode([SchematicComponent].self, from: data)
     }
 
+    /// Load SVG from the C bridge (fallback renderer).
     private func loadSVG() throws {
         guard let h = handle else { return }
         guard let svgPtr = kbs_sch_render_svg(h) else {
             throw KiCadBridgeError.renderError
         }
         svgContent = String(cString: svgPtr)
+        isNativeRendering = false
+    }
+
+    /// Load SVG from KiCad's native renderer (pixel-perfect).
+    private func loadNativeSVG(path: String) async {
+        guard let svg = await nativeRenderer.exportSchematicSVGString(
+            schematicPath: path
+        ) else { return }
+
+        // Only update if we're still showing the same schematic
+        guard currentSchematicPath == path else { return }
+        svgContent = svg
+        isNativeRendering = true
     }
 }
 

@@ -53,7 +53,7 @@ struct ProjectPanel: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .adaptiveSidebarBackground()
 
         Divider()
 
@@ -108,7 +108,7 @@ struct ProjectPanel: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
+            .adaptiveSidebarBackground()
 
             Divider()
 

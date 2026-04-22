@@ -8,6 +8,9 @@ extension Notification.Name {
     static let makelifeGoToGitTab          = Notification.Name("makelife.goToGitTab")
     static let makelifeShowCloneSheet      = Notification.Name("makelife.showCloneSheet")
     static let makelifeShowNewProjectSheet = Notification.Name("makelife.showNewProjectSheet")
+    static let makelifeShowGerberExport    = Notification.Name("makelife.showGerberExport")
+    static let makelifeHighlightInSchematic = Notification.Name("makelife.highlightInSchematic")
+    static let makelifeHighlightInPCB       = Notification.Name("makelife.highlightInPCB")
 }
 
 // MARK: - App entry point
@@ -26,6 +29,7 @@ struct MakelifeCADApp: App {
     @StateObject private var githubVM       = GitHubLibraryViewModel()
     @StateObject private var commandRunner  = CommandRunner()
     @StateObject private var gitRepoVM     = GitHubRepoViewModel()
+    @StateObject private var pluginManager = PluginManager()
 
     // App-level UI state
     @State private var selectedComponent: SchematicComponent?
@@ -61,6 +65,7 @@ struct MakelifeCADApp: App {
             .environmentObject(aiViewModel)
             .environmentObject(fineFabVM)
             .environmentObject(freecadVM)
+            .environmentObject(pluginManager)
             .task {
                 // Wire pcbEditorVM to the shared bridge (can't be done at @StateObject init time)
                 pcbEditorVM.bridge = pcbBridge
@@ -68,6 +73,7 @@ struct MakelifeCADApp: App {
                 freecadVM.attach(project: projectManager.currentProject)
                 await freecadVM.refreshAll()
                 gitRepoVM.attach(projectRoot: projectManager.currentProject?.rootURL)
+                pluginManager.refresh()
             }
             .onChange(of: projectManager.currentProject?.url) { _, _ in
                 guard let project = projectManager.currentProject else {
@@ -195,6 +201,14 @@ struct MakelifeCADApp: App {
 
                 Divider()
 
+                Button("Export Gerbers…") {
+                    NotificationCenter.default.post(name: .makelifeShowGerberExport, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(!pcbBridge.isLoaded)
+
+                Divider()
+
                 Button("Check Gateway Status") {
                     Task { await fineFabVM.checkStatus() }
                 }
@@ -253,6 +267,13 @@ struct MakelifeCADApp: App {
             AnnotationsView()
         }
         .defaultSize(width: 500, height: 420)
+
+        Window("Gerber Export", id: "gerber-export") {
+            GerberExportView()
+                .environmentObject(pcbBridge)
+                .environmentObject(projectManager)
+        }
+        .defaultSize(width: 720, height: 480)
 
         // ── MODÈLE 3 — Document windows (auto-contained bridge per window) ──
         // Usage: openWindow(id: "sch-doc", value: url)
@@ -409,6 +430,8 @@ struct ContentView: View {
     @State private var clonePrefilledRepo = ""
     @State private var showNewProjectSheet = false
 
+    @EnvironmentObject var pluginManager: PluginManager
+
     // Modèle 1 + 3 window opening
     @Environment(\.openWindow) private var openWindow
 
@@ -447,6 +470,39 @@ struct ContentView: View {
         // ── Repository menu shortcut → switch to Git tab ───────────────────
         .onReceive(NotificationCenter.default.publisher(for: .makelifeGoToGitTab)) { _ in
             activeTab = .git
+        }
+        // ── Gerber Export window ─────────────────────────────────────────────
+        .onReceive(NotificationCenter.default.publisher(for: .makelifeShowGerberExport)) { _ in
+            openWindow(id: "gerber-export")
+        }
+        // ── Cross-probing: highlight in schematic ────────────────────────────
+        .onReceive(NotificationCenter.default.publisher(for: .makelifeHighlightInSchematic)) { note in
+            guard let ref = note.object as? String else { return }
+            if let comp = schBridge.components.first(where: { $0.reference == ref }) {
+                activeTab = .schematic
+                selectedComponent = comp
+            }
+        }
+        // ── Cross-probing: highlight in PCB ──────────────────────────────────
+        .onReceive(NotificationCenter.default.publisher(for: .makelifeHighlightInPCB)) { note in
+            guard let ref = note.object as? String else { return }
+            if let fp = pcbBridge.footprints.first(where: { $0.reference == ref }) {
+                activeTab = .pcb
+                selectedFootprint = fp
+            }
+        }
+        // ── Bidirectional selection sync ──────────────────────────────────────
+        .onChange(of: selectedComponent?.id) { _, _ in
+            guard let ref = selectedComponent?.reference else { return }
+            if selectedFootprint?.reference != ref {
+                selectedFootprint = pcbBridge.footprints.first { $0.reference == ref }
+            }
+        }
+        .onChange(of: selectedFootprint?.id) { _, _ in
+            guard let ref = selectedFootprint?.reference else { return }
+            if selectedComponent?.reference != ref {
+                selectedComponent = schBridge.components.first { $0.reference == ref }
+            }
         }
         // ── Clone sheet (from menu or ProjectPanel) ─────────────────────────
         .onReceive(NotificationCenter.default.publisher(for: .makelifeShowCloneSheet)) { notification in
@@ -696,6 +752,11 @@ struct ContentView: View {
                     Label("Fab Preview", systemImage: "eye.square")
                 }
                 .help("Gerber-style fab preview")
+
+                Button { openWindow(id: "gerber-export") } label: {
+                    Label("Export Gerbers", systemImage: "square.and.arrow.up")
+                }
+                .help("Export Gerber + drill files")
             }
             if activeTab == .schematic && schBridge.isLoaded {
                 Button { openWindow(id: "git-diff") } label: {
@@ -817,6 +878,9 @@ struct ContentView: View {
                                  icon: "arrow.left.arrow.right", category: "Windows") { openWindow(id: "cross-ref") })
         items.append(PaletteItem(title: "Design Notes", subtitle: "TODOs, warnings, bugs for this design",
                                  icon: "note.text", category: "Windows") { openWindow(id: "annotations") })
+        items.append(PaletteItem(title: "Export Gerbers", subtitle: "Export Gerber + drill files for fabrication",
+                                 icon: "square.and.arrow.up", category: "Windows",
+                                 badge: "⌘⇧E") { openWindow(id: "gerber-export") })
 
         // Files
         items.append(PaletteItem(title: "Open File…", subtitle: ".kicad_sch / .kicad_pcb",
@@ -879,6 +943,24 @@ struct ContentView: View {
             ) { pcbBridge.toggleLayerVisibility(id: lid) })
         }
 
+        // Cross-probing
+        if schBridge.isLoaded && pcbBridge.isLoaded {
+            items.append(PaletteItem(title: "Locate Selection in PCB",
+                                     subtitle: "Cross-probe: jump to PCB footprint",
+                                     icon: "cpu", category: "Cross-Probe") {
+                if let ref = selectedComponent?.reference {
+                    NotificationCenter.default.post(name: .makelifeHighlightInPCB, object: ref)
+                }
+            })
+            items.append(PaletteItem(title: "Locate Selection in Schematic",
+                                     subtitle: "Cross-probe: jump to schematic symbol",
+                                     icon: "doc.richtext", category: "Cross-Probe") {
+                if let ref = selectedFootprint?.reference {
+                    NotificationCenter.default.post(name: .makelifeHighlightInSchematic, object: ref)
+                }
+            })
+        }
+
         // Components (jump)
         for comp in schBridge.components where schBridge.isLoaded {
             let c = comp
@@ -890,6 +972,34 @@ struct ContentView: View {
             ) {
                 activeTab = .schematic
                 selectedComponent = c
+            })
+        }
+
+        // Plugins
+        items.append(PaletteItem(title: "Open Plugins Folder",
+                                 subtitle: "~/.makelife/plugins/",
+                                 icon: "folder", category: "Plugins") {
+            pluginManager.revealInFinder()
+        })
+        items.append(PaletteItem(title: "Refresh Plugins",
+                                 subtitle: "Rescan plugin directory",
+                                 icon: "arrow.clockwise", category: "Plugins") {
+            pluginManager.refresh()
+        })
+        for plugin in pluginManager.plugins {
+            let p = plugin
+            items.append(PaletteItem(
+                title: p.name,
+                subtitle: p.description.isEmpty ? p.url.lastPathComponent : p.description,
+                icon: p.icon,
+                category: "Plugins"
+            ) {
+                pluginManager.run(
+                    plugin: p,
+                    projectRoot: projectManager.currentProject?.rootURL,
+                    schematicPath: projectManager.currentProject?.schematicURL.path,
+                    pcbPath: projectManager.currentProject?.pcbURL.path
+                )
             })
         }
 

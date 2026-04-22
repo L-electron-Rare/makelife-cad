@@ -34,7 +34,7 @@ struct LayerPanel: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
+            .adaptiveSidebarBackground()
 
             Divider()
 
@@ -196,6 +196,18 @@ private struct PCBFootprintRow: View {
                     .bold()
                     .foregroundStyle(.primary)
                 Spacer()
+                Button {
+                    NotificationCenter.default.post(
+                        name: .makelifeHighlightInSchematic,
+                        object: footprint.reference
+                    )
+                } label: {
+                    Image(systemName: "doc.richtext")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Locate in Schematic")
                 Text(footprint.value)
                     .font(.caption2)
                     .foregroundStyle(.secondary)

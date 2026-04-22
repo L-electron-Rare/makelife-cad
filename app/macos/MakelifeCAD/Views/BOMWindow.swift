@@ -16,6 +16,11 @@ struct BOMEntry: Identifiable {
         // e.g. "Resistor_SMD:R_0402" → "R_0402"
         footprint.split(separator: ":").last.map(String.init) ?? footprint
     }
+
+    /// Build a search query from value + footprint short name
+    var searchQuery: String {
+        "\(value) \(footprintShort)".trimmingCharacters(in: .whitespaces)
+    }
 }
 
 // MARK: - BOM computation
@@ -48,6 +53,14 @@ struct BOMView: View {
     @State private var sortOrder = [KeyPathComparator(\BOMEntry.value)]
     @State private var selection: BOMEntry.ID?
 
+    // Supplier search state
+    @State private var supplierResults: [UUID: [SupplierResult]] = [:]
+    @State private var searchingEntries: Set<UUID> = []
+    @State private var searchErrors: [UUID: String] = [:]
+    @State private var selectedSupplierDetail: BOMEntry?
+
+    private let searchClient = ComponentSearchClient()
+
     private var entries: [BOMEntry] {
         let all = buildBOM(from: schBridge.components)
         if searchText.isEmpty { return all }
@@ -69,8 +82,11 @@ struct BOMView: View {
                 table
             }
         }
-        .frame(minWidth: 600, minHeight: 360)
+        .frame(minWidth: 800, minHeight: 400)
         .navigationTitle("BOM — \(schBridge.components.count) components")
+        .sheet(item: $selectedSupplierDetail) { _ in
+            supplierDetailSheet
+        }
     }
 
     // MARK: Toolbar
@@ -86,6 +102,14 @@ struct BOMView: View {
             Text("\(entries.count) lines · \(entries.map(\.quantity).reduce(0, +)) parts")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Button {
+                searchAllSuppliers()
+            } label: {
+                Label("Search All Suppliers", systemImage: "cart")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(entries.isEmpty || !searchingEntries.isEmpty)
             Button("Export CSV") { exportCSV() }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -93,7 +117,7 @@ struct BOMView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .adaptiveSidebarBackground()
     }
 
     // MARK: Table
@@ -128,7 +152,178 @@ struct BOMView: View {
                 Text(entry.kind.rawValue)
                     .foregroundStyle(.secondary)
             }
-            .width(90)
+            .width(70)
+
+            TableColumn("Price") { entry in
+                supplierPriceCell(for: entry)
+            }
+            .width(min: 60, ideal: 80)
+
+            TableColumn("Stock") { entry in
+                supplierStockCell(for: entry)
+            }
+            .width(min: 50, ideal: 70)
+
+            TableColumn("Supplier") { entry in
+                supplierActionCell(for: entry)
+            }
+            .width(min: 80, ideal: 110)
+        }
+    }
+
+    // MARK: Supplier cells
+
+    @ViewBuilder
+    private func supplierPriceCell(for entry: BOMEntry) -> some View {
+        if let results = supplierResults[entry.id], let best = results.first {
+            Text(best.priceString)
+                .monospacedDigit()
+                .foregroundStyle(best.unitPrice != nil ? .primary : .secondary)
+        } else if searchingEntries.contains(entry.id) {
+            ProgressView().controlSize(.small)
+        } else {
+            Text("—").foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder
+    private func supplierStockCell(for entry: BOMEntry) -> some View {
+        if let results = supplierResults[entry.id], let best = results.first {
+            Text(best.stockString)
+                .monospacedDigit()
+                .foregroundStyle(best.stock ?? 0 > 0 ? .green : .red)
+        } else {
+            Text("—").foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder
+    private func supplierActionCell(for entry: BOMEntry) -> some View {
+        HStack(spacing: 4) {
+            if searchingEntries.contains(entry.id) {
+                ProgressView().controlSize(.mini)
+            } else if let results = supplierResults[entry.id], !results.isEmpty {
+                // Show source badge + detail button
+                Text(results.first?.source ?? "")
+                    .font(.caption2)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(.blue.opacity(0.15))
+                    .cornerRadius(3)
+                Button {
+                    selectedSupplierDetail = entry
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .help("View supplier details")
+            } else if let error = searchErrors[entry.id] {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .help(error)
+                Button {
+                    searchSupplier(for: entry)
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+            } else {
+                Button("Search") {
+                    searchSupplier(for: entry)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+            }
+        }
+    }
+
+    // MARK: Supplier search
+
+    private func searchSupplier(for entry: BOMEntry) {
+        searchingEntries.insert(entry.id)
+        searchErrors.removeValue(forKey: entry.id)
+
+        Task {
+            do {
+                let results = try await searchClient.searchLCSC(query: entry.searchQuery)
+                supplierResults[entry.id] = results
+                if results.isEmpty {
+                    searchErrors[entry.id] = "No results found"
+                }
+            } catch {
+                searchErrors[entry.id] = error.localizedDescription
+            }
+            searchingEntries.remove(entry.id)
+        }
+    }
+
+    private func searchAllSuppliers() {
+        for entry in entries where supplierResults[entry.id] == nil && !searchingEntries.contains(entry.id) {
+            searchSupplier(for: entry)
+        }
+    }
+
+    // MARK: Supplier detail sheet
+
+    @ViewBuilder
+    private var supplierDetailSheet: some View {
+        if let entry = selectedSupplierDetail, let results = supplierResults[entry.id] {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(entry.value).font(.headline)
+                        Text(entry.footprintShort).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Done") { selectedSupplierDetail = nil }
+                        .keyboardShortcut(.cancelAction)
+                }
+                .padding()
+
+                Divider()
+
+                // Results list
+                List(results) { result in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(result.partNumber).font(.headline.monospaced())
+                            Spacer()
+                            Text(result.source)
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(.blue.opacity(0.15))
+                                .cornerRadius(4)
+                        }
+                        Text(result.manufacturer).font(.subheadline).foregroundStyle(.secondary)
+                        if !result.description.isEmpty {
+                            Text(result.description).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                        }
+                        HStack(spacing: 16) {
+                            Label(result.priceString, systemImage: "dollarsign.circle")
+                                .font(.body.monospacedDigit())
+                            Label(result.stockString, systemImage: "shippingbox")
+                                .font(.body.monospacedDigit())
+                                .foregroundStyle(result.stock ?? 0 > 0 ? .green : .red)
+                            Spacer()
+                            if let url = result.datasheetURL {
+                                Link("Datasheet", destination: url)
+                                    .font(.caption)
+                            }
+                            if let url = result.productURL {
+                                Link("Product Page", destination: url)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .frame(minWidth: 500, minHeight: 300)
         }
     }
 
@@ -154,9 +349,18 @@ struct BOMView: View {
     // MARK: CSV Export
 
     private func exportCSV() {
-        let header = "Qty,References,Value,Footprint,Category"
-        let rows = entries.map { e in
-            "\(e.quantity),\"\(e.refString)\",\"\(e.value)\",\"\(e.footprint)\",\(e.kind.rawValue)"
+        let hasSupplier = !supplierResults.isEmpty
+        var header = "Qty,References,Value,Footprint,Category"
+        if hasSupplier { header += ",Part Number,Manufacturer,Unit Price,Stock,Source" }
+
+        let rows = entries.map { e -> String in
+            var row = "\(e.quantity),\"\(e.refString)\",\"\(e.value)\",\"\(e.footprint)\",\(e.kind.rawValue)"
+            if hasSupplier, let best = supplierResults[e.id]?.first {
+                row += ",\"\(best.partNumber)\",\"\(best.manufacturer)\",\(best.priceString),\(best.stockString),\(best.source)"
+            } else if hasSupplier {
+                row += ",,,,,"
+            }
+            return row
         }
         let csv = ([header] + rows).joined(separator: "\n")
 
