@@ -18,11 +18,73 @@
 #define KICAD_MAX_PINS       64
 #define KICAD_MAX_WIRES      8192
 #define KICAD_MAX_LABELS     1024
+#define KICAD_MAX_JUNCTIONS  2048
+#define KICAD_MAX_NOCONNECTS 512
+#define KICAD_MAX_BUSES      1024
+#define KICAD_MAX_SHEETS     64
+#define KICAD_MAX_TEXTS      256
+#define KICAD_MAX_GFX        512
 #define KICAD_JSON_BUF_SIZE  (1 << 20)  /* 1 MB */
-#define KICAD_SVG_BUF_SIZE   (4 << 20)  /* 4 MB */
+#define KICAD_SVG_BUF_SIZE   (16 << 20) /* 16 MB — full symbol geometry */
+
+/* Library symbol geometry limits */
+#define LIB_MAX_SYMBOLS      512
+#define LIB_MAX_DRAW_ITEMS   128
+#define LIB_MAX_POLY_POINTS  64
+#define LIB_MAX_LIB_PINS     64
 
 /* ------------------------------------------------------------------ */
 /* Schematic internal types                                             */
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Library symbol drawing primitives                                    */
+/* ------------------------------------------------------------------ */
+
+typedef enum {
+    DRAW_RECT     = 0,
+    DRAW_CIRCLE   = 1,
+    DRAW_ARC      = 2,
+    DRAW_POLYLINE = 3,
+} DrawPrimType;
+
+typedef struct {
+    DrawPrimType type;
+    /* Rect: (x1,y1)=(start), (x2,y2)=(end) */
+    /* Circle: (cx,cy)=center, r=radius */
+    /* Arc: (cx,cy)=center, r=radius, start_angle..end_angle */
+    /* Polyline: pts array */
+    double x1, y1, x2, y2;
+    double cx, cy, r;
+    double start_angle, end_angle;
+    double pts_x[LIB_MAX_POLY_POINTS];
+    double pts_y[LIB_MAX_POLY_POINTS];
+    int    pt_count;
+    double stroke_width;
+    int    filled;          /* 0=none, 1=outline, 2=background */
+} DrawPrimitive;
+
+typedef struct {
+    double x, y;            /* relative to symbol origin */
+    double length;
+    double angle;           /* 0, 90, 180, 270 */
+    char   name[64];
+    char   number[16];
+} LibPin;
+
+typedef struct {
+    char           name[KICAD_MAX_PROP_LEN];  /* e.g. "Device:R" */
+    DrawPrimitive  draws[LIB_MAX_DRAW_ITEMS];
+    int            draw_count;
+    LibPin         pins[LIB_MAX_LIB_PINS];
+    int            pin_count;
+    double         pin_name_offset;
+    int            hide_pin_names;
+    int            hide_pin_numbers;
+} LibSymbol;
+
+/* ------------------------------------------------------------------ */
+/* Schematic element types                                              */
 /* ------------------------------------------------------------------ */
 
 typedef struct {
@@ -33,6 +95,9 @@ typedef struct {
     char pins[KICAD_MAX_PINS][16];
     int  pin_count;
     double x, y;
+    double angle;           /* rotation in degrees (0, 90, 180, 270) */
+    int    mirror_x;        /* 1 if mirrored on X axis */
+    int    mirror_y;        /* 1 if mirrored on Y axis */
 } KicadComponent;
 
 typedef struct {
@@ -44,6 +109,61 @@ typedef struct {
     double x, y;
     int is_global;
 } KicadLabel;
+
+typedef struct {
+    double x, y;
+} KicadJunction;
+
+typedef struct {
+    double x, y;
+} KicadNoConnect;
+
+/* Bus segments: (bus (pts (xy x1 y1) (xy x2 y2))) */
+typedef struct {
+    double x1, y1, x2, y2;
+} KicadBus;
+
+/* Hierarchical sheet: (sheet (at x y) (size w h) (fields...) (pin...)) */
+typedef struct {
+    double x, y, w, h;
+    char   name[KICAD_MAX_PROP_LEN];       /* "Sheet name" property */
+    char   filename[KICAD_MAX_PROP_LEN];   /* "Sheet file" property */
+} KicadSheet;
+
+/* Title block: (title_block (title "...") (date "...") (rev "...") (company "...")) */
+typedef struct {
+    char title[KICAD_MAX_PROP_LEN];
+    char date[64];
+    char rev[64];
+    char company[KICAD_MAX_PROP_LEN];
+} KicadTitleBlock;
+
+/* Standalone text annotation: (text "content" (at x y angle) (effects ...)) */
+typedef struct {
+    char   text[KICAD_MAX_PROP_LEN];
+    double x, y;
+    double angle;
+    double font_size;        /* from (effects (font (size h w))) */
+} KicadText;
+
+/* Standalone graphics: (rectangle ...), (polyline ...), (circle ...) at top level */
+typedef struct {
+    DrawPrimType type;
+    double x1, y1, x2, y2;          /* rect start/end or line endpoints */
+    double cx, cy, r;                /* circle */
+    double pts_x[LIB_MAX_POLY_POINTS];
+    double pts_y[LIB_MAX_POLY_POINTS];
+    int    pt_count;
+    double stroke_width;
+    char   stroke_color[16];         /* optional color override */
+    int    filled;
+} KicadGraphic;
+
+/* Paper size */
+typedef struct {
+    char   name[16];    /* "A4", "A3", "Letter", etc. */
+    double w, h;        /* dimensions in mils */
+} KicadPaper;
 
 /* ------------------------------------------------------------------ */
 /* Schematic edit types (Phase 4)                                      */
@@ -104,6 +224,33 @@ struct KicadSch {
 
     KicadLabel     labels[KICAD_MAX_LABELS];
     int            label_count;
+
+    KicadJunction  junctions[KICAD_MAX_JUNCTIONS];
+    int            junction_count;
+
+    KicadNoConnect noconnects[KICAD_MAX_NOCONNECTS];
+    int            noconnect_count;
+
+    KicadBus       buses[KICAD_MAX_BUSES];
+    int            bus_count;
+
+    KicadSheet     sheets[KICAD_MAX_SHEETS];
+    int            sheet_count;
+
+    KicadText      texts[KICAD_MAX_TEXTS];
+    int            text_count;
+
+    KicadGraphic   graphics[KICAD_MAX_GFX];
+    int            graphic_count;
+
+    KicadTitleBlock title_block;
+    int             has_title_block;
+
+    KicadPaper     paper;
+
+    /* Library symbol definitions (parsed from lib_symbols block) */
+    LibSymbol*     lib_symbols;      /* heap-allocated array */
+    int            lib_symbol_count;
 
     char*          json_cache;
     char*          svg_cache;
